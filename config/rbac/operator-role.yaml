@@ -30,6 +30,8 @@ rules:
   - integrationkits
   - integrationplatforms
   - integrations
+  - pipes
+  # Deprecated: kameletbindings CR
   - kameletbindings
   - kamelets
   verbs:
@@ -54,6 +56,9 @@ rules:
   - integrationplatforms/status
   - integrations/scale
   - integrations/status
+  - pipes/status
+  - pipes/scale
+  # Deprecated: kameletbindings CR
   - kameletbindings/status
   - kameletbindings/scale
   - kamelets/status
@@ -166,3 +171,10 @@ rules:
   - patch
   - update
   - watch
+- apiGroups:
+  - storage.k8s.io
+  resources:
+  - storageclasses
+  verbs:
+  - get
+  - list

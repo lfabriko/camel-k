@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sync"
@@ -31,11 +30,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/builder"
-	"github.com/apache/camel-k/pkg/event"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/patch"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/builder"
+	"github.com/apache/camel-k/v2/pkg/event"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/patch"
 )
 
 var routines sync.Map
@@ -68,6 +67,7 @@ func (action *monitorRoutineAction) Handle(ctx context.Context, build *v1.Build)
 			routines.Delete(build.Name)
 			build.Status.Phase = v1.BuildPhaseFailed
 			build.Status.Error = "Build routine exists"
+			monitorFinishedBuild(build)
 			return build, nil
 		}
 		status := v1.BuildStatus{Phase: v1.BuildPhaseRunning}
@@ -85,10 +85,14 @@ func (action *monitorRoutineAction) Handle(ctx context.Context, build *v1.Build)
 			// stops abruptly and restarts or the build status update fails.
 			build.Status.Phase = v1.BuildPhaseFailed
 			build.Status.Error = "Build routine not running"
+			monitorFinishedBuild(build)
 			return build, nil
 		}
 	}
 
+	// Monitor running state of the build - this may have been done already by the schedule action but the monitor action is idempotent
+	// We do this here to recover the running build state in the monitor in case of an operator restart
+	monitorRunningBuild(build)
 	return nil, nil
 }
 
@@ -121,7 +125,7 @@ tasks:
 			// Coordinate the build and context directories across the sequence of tasks
 			if t := task.Builder; t != nil {
 				if t.BuildDir == "" {
-					tmpDir, err := ioutil.TempDir(os.TempDir(), build.Name+"-")
+					tmpDir, err := os.MkdirTemp(os.TempDir(), build.Name+"-")
 					if err != nil {
 						status.Failed(err)
 
@@ -173,6 +177,8 @@ tasks:
 
 	duration := metav1.Now().Sub(build.Status.StartedAt.Time)
 	status.Duration = duration.String()
+
+	monitorFinishedBuild(build)
 
 	buildCreator := kubernetes.GetCamelCreator(build)
 	// Account for the Build metrics

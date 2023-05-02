@@ -39,12 +39,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/util"
-	"github.com/apache/camel-k/pkg/util/defaults"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/patch"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/util"
+	"github.com/apache/camel-k/v2/pkg/util/defaults"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/patch"
 )
 
 const (
@@ -180,7 +181,7 @@ func loadKamelet(path string, namespace string) (ctrl.Object, error) {
 		return nil, err
 	}
 	gvk := kamelet.GetObjectKind().GroupVersionKind()
-	if gvk.Group != v1alpha1.SchemeGroupVersion.Group || gvk.Kind != "Kamelet" {
+	if gvk.Group != v1.SchemeGroupVersion.Group || gvk.Kind != "Kamelet" {
 		return nil, fmt.Errorf("file %q does not define a Kamelet", path)
 	}
 
@@ -197,8 +198,8 @@ func loadKamelet(path string, namespace string) (ctrl.Object, error) {
 	if labels == nil {
 		labels = make(map[string]string)
 	}
-	labels[v1alpha1.KameletBundledLabel] = "true"
-	labels[v1alpha1.KameletReadOnlyLabel] = "true"
+	labels[v1.KameletBundledLabel] = "true"
+	labels[v1.KameletReadOnlyLabel] = "true"
 
 	kamelet.SetLabels(labels)
 

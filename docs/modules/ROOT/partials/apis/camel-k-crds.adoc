@@ -221,6 +221,90 @@ Refer to the Kubernetes API documentation for the fields of the `metadata` field
 
 |===
 
+[#_camel_apache_org_v1_Kamelet]
+=== Kamelet
+
+Kamelet is the Schema for the kamelets API
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`apiVersion` +
+string
+|`camel.apache.org/v1`
+
+|`kind` +
+string
+|`Kamelet`
+|`metadata` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#objectmeta-v1-meta[Kubernetes meta/v1.ObjectMeta]*
+|
+
+
+
+
+Refer to the Kubernetes API documentation for the fields of the `metadata` field.
+|`spec` +
+*xref:#_camel_apache_org_v1_KameletSpec[KameletSpec]*
+|
+
+
+the desired specification
+
+|`status` +
+*xref:#_camel_apache_org_v1_KameletStatus[KameletStatus]*
+|
+
+
+the actual status of the resource
+
+
+|===
+
+[#_camel_apache_org_v1_Pipe]
+=== Pipe
+
+Pipe is the Schema for the Pipe API
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`apiVersion` +
+string
+|`camel.apache.org/v1`
+
+|`kind` +
+string
+|`Pipe`
+|`metadata` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#objectmeta-v1-meta[Kubernetes meta/v1.ObjectMeta]*
+|
+
+
+
+
+Refer to the Kubernetes API documentation for the fields of the `metadata` field.
+|`spec` +
+*xref:#_camel_apache_org_v1_PipeSpec[PipeSpec]*
+|
+
+
+the specification of a Pipe
+
+|`status` +
+*xref:#_camel_apache_org_v1_PipeStatus[PipeStatus]*
+|
+
+
+the status of a Pipe
+
+
+|===
+
 == Internal Types
 
 [#_camel_apache_org_v1_AddonTrait]
@@ -318,6 +402,26 @@ string
 
 
 name of the task
+
+
+|===
+
+[#_camel_apache_org_v1_BeanProperties]
+=== BeanProperties
+
+BeanProperties represent an unstructured object properties to be set on a bean
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`RawMessage` +
+*xref:#_camel_apache_org_v1_RawMessage[RawMessage]*
+|(Members of `RawMessage` are embedded into this type.)
+
+
+
 
 
 |===
@@ -429,6 +533,20 @@ The sequence of Build tasks to be performed as part of the Build execution.
 
 The strategy that should be used to perform the Build.
 
+|`toolImage` +
+string
+|
+
+
+The container image to be used to run the build.
+
+|`operatorNamespace` +
+string
+|
+
+
+The namespace where to run the builder Pod (must be the same of the operator in charge of this Build reconciliation).
+
 |`timeout` +
 *https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta[Kubernetes meta/v1.Duration]*
 |
@@ -438,6 +556,13 @@ Timeout defines the Build maximum execution duration.
 The Build deadline is set to the Build start time plus the Timeout duration.
 If the Build deadline is exceeded, the Build context is canceled,
 and its phase set to BuildPhaseFailed.
+
+|`maxRunningBuilds` +
+int32
+|
+
+
+the maximum amount of parallel running builds started by this operator instance
 
 
 |===
@@ -665,6 +790,13 @@ string
 
 workspace directory to use
 
+|`sources` +
+*xref:#_camel_apache_org_v1_SourceSpec[[\]SourceSpec]*
+|
+
+
+the sources to add at build time
+
 
 |===
 
@@ -790,6 +922,85 @@ Maven Artifact
 
 |===
 
+[#_camel_apache_org_v1_CamelCatalogCondition]
+=== CamelCatalogCondition
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_CamelCatalogStatus, CamelCatalogStatus>>
+
+CamelCatalogCondition describes the state of a resource at a certain point.
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`type` +
+*xref:#_camel_apache_org_v1_CamelCatalogConditionType[CamelCatalogConditionType]*
+|
+
+
+Type of CamelCatalog condition.
+
+|`status` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#conditionstatus-v1-core[Kubernetes core/v1.ConditionStatus]*
+|
+
+
+Status of the condition, one of True, False, Unknown.
+
+|`lastUpdateTime` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#time-v1-meta[Kubernetes meta/v1.Time]*
+|
+
+
+The last time this condition was updated.
+
+|`lastTransitionTime` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#time-v1-meta[Kubernetes meta/v1.Time]*
+|
+
+
+Last time the condition transitioned from one status to another.
+
+|`reason` +
+string
+|
+
+
+The reason for the condition's last transition.
+
+|`message` +
+string
+|
+
+
+A human-readable message indicating details about the transition.
+
+
+|===
+
+[#_camel_apache_org_v1_CamelCatalogConditionType]
+=== CamelCatalogConditionType(`string` alias)
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_CamelCatalogCondition, CamelCatalogCondition>>
+
+CamelCatalogConditionType --
+
+
+[#_camel_apache_org_v1_CamelCatalogPhase]
+=== CamelCatalogPhase(`string` alias)
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_CamelCatalogStatus, CamelCatalogStatus>>
+
+CamelCatalogPhase --
+
+
 [#_camel_apache_org_v1_CamelCatalogSpec]
 === CamelCatalogSpec
 
@@ -812,14 +1023,14 @@ CamelCatalogSpec specify what features a Camel runtime provides
 the runtime targeted for the catalog
 
 |`artifacts` +
-*xref:#_camel_apache_org_v1_CamelArtifact[map[string\]github.com/apache/camel-k/pkg/apis/camel/v1.CamelArtifact]*
+*xref:#_camel_apache_org_v1_CamelArtifact[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.CamelArtifact]*
 |
 
 
 artifacts required by this catalog
 
 |`loaders` +
-*xref:#_camel_apache_org_v1_CamelLoader[map[string\]github.com/apache/camel-k/pkg/apis/camel/v1.CamelLoader]*
+*xref:#_camel_apache_org_v1_CamelLoader[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.CamelLoader]*
 |
 
 
@@ -837,6 +1048,41 @@ loaders required by this catalog
 
 CamelCatalogStatus defines the observed state of CamelCatalog. As the catalog is a static resource, we expect it to be empty.
 
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`observedGeneration` +
+int64
+|
+
+
+ObservedGeneration is the most recent generation observed for this Catalog.
+
+|`phase` +
+*xref:#_camel_apache_org_v1_CamelCatalogPhase[CamelCatalogPhase]*
+|
+
+
+the actual phase
+
+|`conditions` +
+*xref:#_camel_apache_org_v1_CamelCatalogCondition[[\]CamelCatalogCondition]*
+|
+
+
+a list of events happened for the CamelCatalog
+
+|`image` +
+string
+|
+
+
+the container image available for building an application with this catalog
+
+
+|===
 
 [#_camel_apache_org_v1_CamelLoader]
 === CamelLoader
@@ -872,6 +1118,13 @@ a list of DSLs supported
 
 
 a list of additional dependencies required beside the base one
+
+|`metadata` +
+map[string]string
+|
+
+
+the metadata of the loader
 
 
 |===
@@ -1090,6 +1343,424 @@ if the content is compressed (base64 encrypted)
 
 |===
 
+[#_camel_apache_org_v1_DataTypeReference]
+=== DataTypeReference
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_Endpoint, Endpoint>>
+
+DataTypeReference references to the specification of a data type by its scheme and format name
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`scheme` +
+string
+|
+
+
+the data type component scheme
+
+|`format` +
+string
+|
+
+
+the data type format name
+
+
+|===
+
+[#_camel_apache_org_v1_DataTypeSpec]
+=== DataTypeSpec
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_DataTypesSpec, DataTypesSpec>>
+
+DataTypeSpec represents the specification for a data type
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`scheme` +
+string
+|
+
+
+the data type component scheme
+
+|`format` +
+string
+|
+
+
+the data type format name
+
+|`description` +
+string
+|
+
+
+optional description
+
+|`mediaType` +
+string
+|
+
+
+media type as expected for HTTP media types (ie, application/json)
+
+|`dependencies` +
+[]string
+|
+
+
+the list of Camel or Maven dependencies required by the data type
+
+|`headers` +
+*xref:#_camel_apache_org_v1_HeaderSpec[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.HeaderSpec]*
+|
+
+
+one to many header specifications
+
+|`schema` +
+*xref:#_camel_apache_org_v1_JSONSchemaProps[JSONSchemaProps]*
+|
+
+
+the expected schema for the data type
+
+
+|===
+
+[#_camel_apache_org_v1_DataTypesSpec]
+=== DataTypesSpec
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_KameletSpec, KameletSpec>>
+
+DataTypesSpec represents the specification for a set of data types
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`default` +
+string
+|
+
+
+the default data type for this Kamelet
+
+|`types` +
+*xref:#_camel_apache_org_v1_DataTypeSpec[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.DataTypeSpec]*
+|
+
+
+one to many data type specifications
+
+|`headers` +
+*xref:#_camel_apache_org_v1_HeaderSpec[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.HeaderSpec]*
+|
+
+
+one to many header specifications
+
+
+|===
+
+[#_camel_apache_org_v1_Endpoint]
+=== Endpoint
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_ErrorHandlerSink, ErrorHandlerSink>>
+* <<#_camel_apache_org_v1_PipeSpec, PipeSpec>>
+
+Endpoint represents a source/sink external entity (could be any Kubernetes resource or Camel URI)
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`ref` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#objectreference-v1-core[Kubernetes core/v1.ObjectReference]*
+|
+
+
+Ref can be used to declare a Kubernetes resource as source/sink endpoint
+
+|`uri` +
+string
+|
+
+
+URI can be used to specify the (Camel) endpoint explicitly
+
+|`properties` +
+*xref:#_camel_apache_org_v1_EndpointProperties[EndpointProperties]*
+|
+
+
+Properties are a key value representation of endpoint properties
+
+|`types` +
+*xref:#_camel_apache_org_v1_EventTypeSpec[map[github.com/apache/camel-k/v2/pkg/apis/camel/v1.TypeSlot\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.EventTypeSpec]*
+|
+
+
+Types defines the data type of the data produced/consumed by the endpoint and references a given data type specification.
+Deprecated: In favor of using DataTypes
+
+|`dataTypes` +
+*xref:#_camel_apache_org_v1_DataTypeReference[map[github.com/apache/camel-k/v2/pkg/apis/camel/v1.TypeSlot\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.DataTypeReference]*
+|
+
+
+DataTypes defines the data type of the data produced/consumed by the endpoint and references a given data type specification.
+
+
+|===
+
+[#_camel_apache_org_v1_EndpointProperties]
+=== EndpointProperties
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_Endpoint, Endpoint>>
+
+EndpointProperties is a key/value struct represented as JSON raw to allow numeric/boolean values
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`RawMessage` +
+*xref:#_camel_apache_org_v1_RawMessage[RawMessage]*
+|(Members of `RawMessage` are embedded into this type.)
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_EndpointType]
+=== EndpointType(`string` alias)
+
+EndpointType represents the type (ie, source or sink)
+
+
+[#_camel_apache_org_v1_ErrorHandler]
+=== ErrorHandler
+
+ErrorHandler is a generic interface that represent any type of error handler specification
+
+
+[#_camel_apache_org_v1_ErrorHandlerLog]
+=== ErrorHandlerLog
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_ErrorHandlerSink, ErrorHandlerSink>>
+
+ErrorHandlerLog represent a default (log) error handler type
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`ErrorHandlerNone` +
+*xref:#_camel_apache_org_v1_ErrorHandlerNone[ErrorHandlerNone]*
+|
+
+
+
+
+|`parameters` +
+*xref:#_camel_apache_org_v1_ErrorHandlerParameters[ErrorHandlerParameters]*
+|
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_ErrorHandlerNone]
+=== ErrorHandlerNone
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_ErrorHandlerLog, ErrorHandlerLog>>
+
+ErrorHandlerNone --
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+
+|===
+
+[#_camel_apache_org_v1_ErrorHandlerParameters]
+=== ErrorHandlerParameters
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_ErrorHandlerLog, ErrorHandlerLog>>
+
+ErrorHandlerParameters represent an unstructured object for error handler parameters
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`RawMessage` +
+*xref:#_camel_apache_org_v1_RawMessage[RawMessage]*
+|(Members of `RawMessage` are embedded into this type.)
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_ErrorHandlerSink]
+=== ErrorHandlerSink
+
+ErrorHandlerSink represents a sink error handler type which behave like a dead letter channel
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`ErrorHandlerLog` +
+*xref:#_camel_apache_org_v1_ErrorHandlerLog[ErrorHandlerLog]*
+|
+
+
+
+
+|`endpoint` +
+*xref:#_camel_apache_org_v1_Endpoint[Endpoint]*
+|
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_ErrorHandlerSpec]
+=== ErrorHandlerSpec
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_PipeSpec, PipeSpec>>
+
+ErrorHandlerSpec represents an unstructured object for an error handler
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`RawMessage` +
+*xref:#_camel_apache_org_v1_RawMessage[RawMessage]*
+|(Members of `RawMessage` are embedded into this type.)
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_ErrorHandlerType]
+=== ErrorHandlerType(`string` alias)
+
+ErrorHandlerType a type of error handler (ie, sink)
+
+
+[#_camel_apache_org_v1_EventTypeSpec]
+=== EventTypeSpec
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_Endpoint, Endpoint>>
+* <<#_camel_apache_org_v1_KameletSpec, KameletSpec>>
+
+EventTypeSpec represents a specification for an event type
+Deprecated: In favor of using DataTypeSpec
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`mediaType` +
+string
+|
+
+
+media type as expected for HTTP media types (ie, application/json)
+
+|`schema` +
+*xref:#_camel_apache_org_v1_JSONSchemaProps[JSONSchemaProps]*
+|
+
+
+the expected schema for the event
+
+
+|===
+
+[#_camel_apache_org_v1_ExternalDocumentation]
+=== ExternalDocumentation
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_JSONSchemaProps, JSONSchemaProps>>
+
+ExternalDocumentation allows referencing an external resource for extended documentation.
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`description` +
+string
+|
+
+
+
+
+|`url` +
+string
+|
+
+
+
+
+
+|===
+
 [#_camel_apache_org_v1_Failure]
 === Failure
 
@@ -1184,6 +1855,59 @@ Flow is an unstructured object representing a Camel Flow in YAML/JSON DSL
 |`RawMessage` +
 *xref:#_camel_apache_org_v1_RawMessage[RawMessage]*
 |(Members of `RawMessage` are embedded into this type.)
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_HeaderSpec]
+=== HeaderSpec
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_DataTypeSpec, DataTypeSpec>>
+* <<#_camel_apache_org_v1_DataTypesSpec, DataTypesSpec>>
+
+HeaderSpec represents the specification for a header used in the Kamelet
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`type` +
+string
+|
+
+
+
+
+|`title` +
+string
+|
+
+
+
+
+|`description` +
+string
+|
+
+
+
+
+|`required` +
+bool
+|
+
+
+
+
+|`default` +
+string
+|
 
 
 
@@ -1491,6 +2215,13 @@ configuration used by the kit
 
 Maven repositories that can be used by the kit
 
+|`sources` +
+*xref:#_camel_apache_org_v1_SourceSpec[[\]SourceSpec]*
+|
+
+
+the sources to add at build time
+
 
 |===
 
@@ -1640,7 +2371,7 @@ NOTE: Compiling to a native executable, i.e. when using `package-type=native`, i
 The Registry trait sets up Maven to use the Image registry as a Maven repository.
 
 |`addons` +
-*xref:#_camel_apache_org_v1_AddonTrait[map[string\]github.com/apache/camel-k/pkg/apis/camel/v1.AddonTrait]*
+*xref:#_camel_apache_org_v1_AddonTrait[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.AddonTrait]*
 |
 
 
@@ -1728,6 +2459,13 @@ It can be useful if you want to provide some custom base image with further util
 
 the image registry used to push/pull Integration images
 
+|`buildCatalogToolTimeout` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta[Kubernetes meta/v1.Duration]*
+|
+
+
+the timeout (in seconds) to use when creating the build tools container image
+
 |`timeout` +
 *https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#duration-v1-meta[Kubernetes meta/v1.Duration]*
 |
@@ -1748,6 +2486,13 @@ map[string]string
 
 
 Generic options that can used by each publish strategy
+
+|`maxRunningBuilds` +
+int32
+|
+
+
+the maximum amount of parallel running builds started by this operator instance
 
 
 |===
@@ -2020,6 +2765,7 @@ generic information related to the build of Camel K operator software
 *Appears on:*
 
 * <<#_camel_apache_org_v1_Integration, Integration>>
+* <<#_camel_apache_org_v1_PipeSpec, PipeSpec>>
 
 IntegrationSpec specifies the configuration of an Integration.
 The Integration will be watched by the operator which will be in charge to run the related application, according to the configuration specified.
@@ -2253,6 +2999,549 @@ features offered by the Integration
 
 
 the timestamp representing the last time when this integration was initialized.
+
+
+|===
+
+[#_camel_apache_org_v1_JSON]
+=== JSON
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_JSONSchemaProp, JSONSchemaProp>>
+* <<#_camel_apache_org_v1_JSONSchemaProps, JSONSchemaProps>>
+
+JSON represents any valid JSON value.
+These types are supported: bool, int64, float64, string, []interface{}, map[string]interface{} and nil.
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`RawMessage` +
+*xref:#_camel_apache_org_v1_RawMessage[RawMessage]*
+|(Members of `RawMessage` are embedded into this type.)
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_JSONSchemaProp]
+=== JSONSchemaProp
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_JSONSchemaProps, JSONSchemaProps>>
+
+
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`id` +
+string
+|
+
+
+
+
+|`deprecated` +
+bool
+|
+
+
+
+
+|`description` +
+string
+|
+
+
+
+
+|`type` +
+string
+|
+
+
+
+
+|`format` +
+string
+|
+
+
+format is an OpenAPI v3 format string. Unknown formats are ignored. The following formats are validated:
+
+- bsonobjectid: a bson object ID, i.e. a 24 characters hex string
+- uri: an URI as parsed by Golang net/url.ParseRequestURI
+- email: an email address as parsed by Golang net/mail.ParseAddress
+- hostname: a valid representation for an Internet host name, as defined by RFC 1034, section 3.1 [RFC1034].
+- ipv4: an IPv4 IP as parsed by Golang net.ParseIP
+- ipv6: an IPv6 IP as parsed by Golang net.ParseIP
+- cidr: a CIDR as parsed by Golang net.ParseCIDR
+- mac: a MAC address as parsed by Golang net.ParseMAC
+- uuid: an UUID that allows uppercase defined by the regex (?i)^[0-9a-f]\{8}-?[0-9a-f]\{4}-?[0-9a-f]\{4}-?[0-9a-f]\{4}-?[0-9a-f]\{12}$
+- uuid3: an UUID3 that allows uppercase defined by the regex (?i)^[0-9a-f]\{8}-?[0-9a-f]\{4}-?3[0-9a-f]\{3}-?[0-9a-f]\{4}-?[0-9a-f]\{12}$
+- uuid4: an UUID4 that allows uppercase defined by the regex (?i)^[0-9a-f]\{8}-?[0-9a-f]\{4}-?4[0-9a-f]\{3}-?[89ab][0-9a-f]\{3}-?[0-9a-f]\{12}$
+- uuid5: an UUID5 that allows uppercase defined by the regex (?i)^[0-9a-f]\{8}-?[0-9a-f]\{4}-?5[0-9a-f]\{3}-?[89ab][0-9a-f]\{3}-?[0-9a-f]\{12}$
+- isbn: an ISBN10 or ISBN13 number string like "0321751043" or "978-0321751041"
+- isbn10: an ISBN10 number string like "0321751043"
+- isbn13: an ISBN13 number string like "978-0321751041"
+- creditcard: a credit card number defined by the regex ^(?:4[0-9]\{12}(?:[0-9]\{3})?{vbar}5[1-5][0-9]\{14}{vbar}6(?:011{vbar}5[0-9][0-9])[0-9]\{12}{vbar}3[47][0-9]\{13}{vbar}3(?:0[0-5]{vbar}[68][0-9])[0-9]\{11}{vbar}(?:2131{vbar}1800{vbar}35\\d\{3})\\d\{11})$ with any non digit characters mixed in
+- ssn: a U.S. social security number following the regex ^\\d\{3}[- ]?\\d\{2}[- ]?\\d\{4}$
+- hexcolor: an hexadecimal color code like "\#FFFFFF" following the regex ^#?([0-9a-fA-F]\{3}{vbar}[0-9a-fA-F]\{6})$
+- rgbcolor: an RGB color code like rgb like "rgb(255,255,255)"
+- byte: base64 encoded binary data
+- password: any kind of string
+- date: a date string like "2006-01-02" as defined by full-date in RFC3339
+- duration: a duration string like "22 ns" as parsed by Golang time.ParseDuration or compatible with Scala duration format
+- datetime: a date time string like "2014-12-15T19:30:20.000Z" as defined by date-time in RFC3339.
+
+|`title` +
+string
+|
+
+
+
+
+|`default` +
+*xref:#_camel_apache_org_v1_JSON[JSON]*
+|
+
+
+default is a default value for undefined object fields.
+
+|`maximum` +
+encoding/json.Number
+|
+
+
+
+
+|`exclusiveMaximum` +
+bool
+|
+
+
+
+
+|`minimum` +
+encoding/json.Number
+|
+
+
+
+
+|`exclusiveMinimum` +
+bool
+|
+
+
+
+
+|`maxLength` +
+int64
+|
+
+
+
+
+|`minLength` +
+int64
+|
+
+
+
+
+|`pattern` +
+string
+|
+
+
+
+
+|`maxItems` +
+int64
+|
+
+
+
+
+|`minItems` +
+int64
+|
+
+
+
+
+|`uniqueItems` +
+bool
+|
+
+
+
+
+|`maxProperties` +
+int64
+|
+
+
+
+
+|`minProperties` +
+int64
+|
+
+
+
+
+|`multipleOf` +
+encoding/json.Number
+|
+
+
+
+
+|`enum` +
+*xref:#_camel_apache_org_v1_JSON[[\]JSON]*
+|
+
+
+
+
+|`example` +
+*xref:#_camel_apache_org_v1_JSON[JSON]*
+|
+
+
+
+
+|`nullable` +
+bool
+|
+
+
+
+
+|`x-descriptors` +
+[]string
+|
+
+
+XDescriptors is a list of extended properties that trigger a custom behavior in external systems
+
+
+|===
+
+[#_camel_apache_org_v1_JSONSchemaProps]
+=== JSONSchemaProps
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_DataTypeSpec, DataTypeSpec>>
+* <<#_camel_apache_org_v1_EventTypeSpec, EventTypeSpec>>
+* <<#_camel_apache_org_v1_KameletSpec, KameletSpec>>
+
+JSONSchemaProps is a JSON-Schema following Specification Draft 4 (http://json-schema.org/).
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`id` +
+string
+|
+
+
+
+
+|`description` +
+string
+|
+
+
+
+
+|`title` +
+string
+|
+
+
+
+
+|`properties` +
+*xref:#_camel_apache_org_v1_JSONSchemaProp[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.JSONSchemaProp]*
+|
+
+
+
+
+|`required` +
+[]string
+|
+
+
+
+
+|`example` +
+*xref:#_camel_apache_org_v1_JSON[JSON]*
+|
+
+
+
+
+|`externalDocs` +
+*xref:#_camel_apache_org_v1_ExternalDocumentation[ExternalDocumentation]*
+|
+
+
+
+
+|`$schema` +
+*xref:#_camel_apache_org_v1_JSONSchemaURL[JSONSchemaURL]*
+|
+
+
+
+
+|`type` +
+string
+|
+
+
+
+
+
+|===
+
+[#_camel_apache_org_v1_JSONSchemaURL]
+=== JSONSchemaURL(`string` alias)
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_JSONSchemaProps, JSONSchemaProps>>
+
+JSONSchemaURL represents a schema url.
+
+
+[#_camel_apache_org_v1_KameletCondition]
+=== KameletCondition
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_KameletStatus, KameletStatus>>
+
+KameletCondition describes the state of a resource at a certain point.
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`type` +
+*xref:#_camel_apache_org_v1_KameletConditionType[KameletConditionType]*
+|
+
+
+Type of kamelet condition.
+
+|`status` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#conditionstatus-v1-core[Kubernetes core/v1.ConditionStatus]*
+|
+
+
+Status of the condition, one of True, False, Unknown.
+
+|`lastUpdateTime` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#time-v1-meta[Kubernetes meta/v1.Time]*
+|
+
+
+The last time this condition was updated.
+
+|`lastTransitionTime` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#time-v1-meta[Kubernetes meta/v1.Time]*
+|
+
+
+Last time the condition transitioned from one status to another.
+
+|`reason` +
+string
+|
+
+
+The reason for the condition's last transition.
+
+|`message` +
+string
+|
+
+
+A human-readable message indicating details about the transition.
+
+
+|===
+
+[#_camel_apache_org_v1_KameletConditionType]
+=== KameletConditionType(`string` alias)
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_KameletCondition, KameletCondition>>
+
+KameletConditionType --
+
+
+[#_camel_apache_org_v1_KameletPhase]
+=== KameletPhase(`string` alias)
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_KameletStatus, KameletStatus>>
+
+KameletPhase --
+
+
+[#_camel_apache_org_v1_KameletProperty]
+=== KameletProperty
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_KameletStatus, KameletStatus>>
+
+KameletProperty specify the behavior of a property in a Kamelet
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`name` +
+string
+|
+
+
+the name of the property
+
+|`default` +
+string
+|
+
+
+the default value of the property (if any)
+
+
+|===
+
+[#_camel_apache_org_v1_KameletSpec]
+=== KameletSpec
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_Kamelet, Kamelet>>
+
+KameletSpec specifies the configuration required to execute a Kamelet
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`definition` +
+*xref:#_camel_apache_org_v1_JSONSchemaProps[JSONSchemaProps]*
+|
+
+
+defines the formal configuration of the Kamelet
+
+|`sources` +
+*xref:#_camel_apache_org_v1_SourceSpec[[\]SourceSpec]*
+|
+
+
+sources in any Camel DSL supported
+
+|`template` +
+*xref:#_camel_apache_org_v1_Template[Template]*
+|
+
+
+the main source in YAML DSL
+
+|`types` +
+*xref:#_camel_apache_org_v1_EventTypeSpec[map[github.com/apache/camel-k/v2/pkg/apis/camel/v1.TypeSlot\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.EventTypeSpec]*
+|
+
+
+data specification types for the events consumed/produced by the Kamelet
+Deprecated: In favor of using DataTypes
+
+|`dataTypes` +
+*xref:#_camel_apache_org_v1_DataTypesSpec[map[github.com/apache/camel-k/v2/pkg/apis/camel/v1.TypeSlot\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.DataTypesSpec]*
+|
+
+
+data specification types for the events consumed/produced by the Kamelet
+
+|`dependencies` +
+[]string
+|
+
+
+Camel dependencies needed by the Kamelet
+
+
+|===
+
+[#_camel_apache_org_v1_KameletStatus]
+=== KameletStatus
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_Kamelet, Kamelet>>
+
+KameletStatus defines the observed state of Kamelet
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`observedGeneration` +
+int64
+|
+
+
+ObservedGeneration is the most recent generation observed for this Kamelet.
+
+|`phase` +
+*xref:#_camel_apache_org_v1_KameletPhase[KameletPhase]*
+|
+
+
+Phase --
+
+|`conditions` +
+*xref:#_camel_apache_org_v1_KameletCondition[[\]KameletCondition]*
+|
+
+
+Conditions --
+
+|`properties` +
+*xref:#_camel_apache_org_v1_KameletProperty[[\]KameletProperty]*
+|
+
+
+Properties --
 
 
 |===
@@ -2507,8 +3796,212 @@ See https://maven.apache.org/ref/3.8.4/maven-embedder/cli.html.
 
 |===
 
+[#_camel_apache_org_v1_PipeCondition]
+=== PipeCondition
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_PipeStatus, PipeStatus>>
+
+PipeCondition describes the state of a resource at a certain point.
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`type` +
+*xref:#_camel_apache_org_v1_PipeConditionType[PipeConditionType]*
+|
+
+
+Type of pipe condition.
+
+|`status` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#conditionstatus-v1-core[Kubernetes core/v1.ConditionStatus]*
+|
+
+
+Status of the condition, one of True, False, Unknown.
+
+|`lastUpdateTime` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#time-v1-meta[Kubernetes meta/v1.Time]*
+|
+
+
+The last time this condition was updated.
+
+|`lastTransitionTime` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#time-v1-meta[Kubernetes meta/v1.Time]*
+|
+
+
+Last time the condition transitioned from one status to another.
+
+|`reason` +
+string
+|
+
+
+The reason for the condition's last transition.
+
+|`message` +
+string
+|
+
+
+A human readable message indicating details about the transition.
+
+|`pods` +
+*xref:#_camel_apache_org_v1_PodCondition[[\]PodCondition]*
+|
+
+
+Pods collect health and conditions information from the owned PODs
+
+
+|===
+
+[#_camel_apache_org_v1_PipeConditionType]
+=== PipeConditionType(`string` alias)
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_PipeCondition, PipeCondition>>
+
+PipeConditionType --
+
+
+[#_camel_apache_org_v1_PipePhase]
+=== PipePhase(`string` alias)
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_PipeStatus, PipeStatus>>
+
+PipePhase --
+
+
+[#_camel_apache_org_v1_PipeSpec]
+=== PipeSpec
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_Pipe, Pipe>>
+
+PipeSpec defines the binding between a source and a sink. It can include custom parameters and additional intermediate steps and error handling.
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`integration` +
+*xref:#_camel_apache_org_v1_IntegrationSpec[IntegrationSpec]*
+|
+
+
+Integration is an optional integration used to specify custom parameters
+
+|`source` +
+*xref:#_camel_apache_org_v1_Endpoint[Endpoint]*
+|
+
+
+Source is the starting point of the integration defined by this Pipe
+
+|`sink` +
+*xref:#_camel_apache_org_v1_Endpoint[Endpoint]*
+|
+
+
+Sink is the destination of the integration defined by this Pipe
+
+|`errorHandler` +
+*xref:#_camel_apache_org_v1_ErrorHandlerSpec[ErrorHandlerSpec]*
+|
+
+
+ErrorHandler is an optional handler called upon an error occuring in the integration
+
+|`steps` +
+*xref:#_camel_apache_org_v1_Endpoint[[\]Endpoint]*
+|
+
+
+Steps contains an optional list of intermediate steps that are executed between the Source and the Sink
+
+|`replicas` +
+int32
+|
+
+
+Replicas is the number of desired replicas for the Pipe
+
+|`serviceAccountName` +
+string
+|
+
+
+Custom SA to use for the Pipe
+
+
+|===
+
+[#_camel_apache_org_v1_PipeStatus]
+=== PipeStatus
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_Pipe, Pipe>>
+
+PipeStatus specify the status of a Pipe
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`observedGeneration` +
+int64
+|
+
+
+ObservedGeneration is the most recent generation observed for this Pipe.
+
+|`phase` +
+*xref:#_camel_apache_org_v1_PipePhase[PipePhase]*
+|
+
+
+Phase --
+
+|`conditions` +
+*xref:#_camel_apache_org_v1_PipeCondition[[\]PipeCondition]*
+|
+
+
+Conditions --
+
+|`replicas` +
+int32
+|
+
+
+Replicas is the number of actual replicas of the pipe
+
+|`selector` +
+string
+|
+
+
+Selector allows to identify pods belonging to the pipe
+
+
+|===
+
 [#_camel_apache_org_v1_PluginProperties]
-=== PluginProperties(`map[string]github.com/apache/camel-k/pkg/apis/camel/v1.StringOrProperties` alias)
+=== PluginProperties(`map[string]github.com/apache/camel-k/v2/pkg/apis/camel/v1.StringOrProperties` alias)
 
 
 
@@ -2519,6 +4012,7 @@ See https://maven.apache.org/ref/3.8.4/maven-embedder/cli.html.
 *Appears on:*
 
 * <<#_camel_apache_org_v1_IntegrationCondition, IntegrationCondition>>
+* <<#_camel_apache_org_v1_PipeCondition, PipeCondition>>
 
 
 
@@ -2733,8 +4227,14 @@ where to publish the final image
 *Appears on:*
 
 * <<#_camel_apache_org_v1_AddonTrait, AddonTrait>>
+* <<#_camel_apache_org_v1_BeanProperties, BeanProperties>>
+* <<#_camel_apache_org_v1_EndpointProperties, EndpointProperties>>
+* <<#_camel_apache_org_v1_ErrorHandlerParameters, ErrorHandlerParameters>>
+* <<#_camel_apache_org_v1_ErrorHandlerSpec, ErrorHandlerSpec>>
 * <<#_camel_apache_org_v1_Flow, Flow>>
 * <<#_camel_apache_org_v1_HealthCheckResponse, HealthCheckResponse>>
+* <<#_camel_apache_org_v1_JSON, JSON>>
+* <<#_camel_apache_org_v1_Template, Template>>
 * <<#_camel_apache_org_v1_TraitConfiguration, TraitConfiguration>>
 
 RawMessage is a raw encoded JSON value.
@@ -3003,7 +4503,7 @@ map[string]string
 set of metadata
 
 |`capabilities` +
-*xref:#_camel_apache_org_v1_Capability[map[string\]github.com/apache/camel-k/pkg/apis/camel/v1.Capability]*
+*xref:#_camel_apache_org_v1_Capability[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.Capability]*
 |
 
 
@@ -3107,8 +4607,11 @@ string
 
 *Appears on:*
 
+* <<#_camel_apache_org_v1_BuilderTask, BuilderTask>>
+* <<#_camel_apache_org_v1_IntegrationKitSpec, IntegrationKitSpec>>
 * <<#_camel_apache_org_v1_IntegrationSpec, IntegrationSpec>>
 * <<#_camel_apache_org_v1_IntegrationStatus, IntegrationStatus>>
+* <<#_camel_apache_org_v1_KameletSpec, KameletSpec>>
 
 SourceSpec defines the configuration for one or more routes to be executed in a certain Camel DSL language
 
@@ -3280,6 +4783,30 @@ a SpectrumTask, for Spectrum strategy
 
 
 a S2iTask, for S2I strategy
+
+
+|===
+
+[#_camel_apache_org_v1_Template]
+=== Template
+
+*Appears on:*
+
+* <<#_camel_apache_org_v1_KameletSpec, KameletSpec>>
+
+Template is an unstructured object representing a Kamelet template in YAML/JSON DSL
+
+[cols="2,2a",options="header"]
+|===
+|Field
+|Description
+
+|`RawMessage` +
+*xref:#_camel_apache_org_v1_RawMessage[RawMessage]*
+|(Members of `RawMessage` are embedded into this type.)
+
+
+an unstructured raw message
 
 
 |===
@@ -3601,7 +5128,7 @@ The configuration of Service Binding trait
 The configuration of Toleration trait
 
 |`addons` +
-*xref:#_camel_apache_org_v1_AddonTrait[map[string\]github.com/apache/camel-k/pkg/apis/camel/v1.AddonTrait]*
+*xref:#_camel_apache_org_v1_AddonTrait[map[string\]github.com/apache/camel-k/v2/pkg/apis/camel/v1.AddonTrait]*
 |
 
 
@@ -3644,6 +5171,12 @@ Deprecated: for backward compatibility.
 
 
 |===
+
+[#_camel_apache_org_v1_TypeSlot]
+=== TypeSlot(`string` alias)
+
+TypeSlot represent a kind of data (ie, input, output, ...)
+
 
 [#_camel_apache_org_v1_ValueSource]
 === ValueSource
@@ -3749,7 +5282,7 @@ integration pod(s) should not be co-located with.
 * <<#_camel_apache_org_v1_IntegrationKitTraits, IntegrationKitTraits>>
 * <<#_camel_apache_org_v1_Traits, Traits>>
 
-The builder trait is internally used to determine the best strategy to
+BuilderTrait is internally used to determine the best strategy to
 build and configure IntegrationKits.
 
 
@@ -3778,6 +5311,13 @@ Enable verbose logging on build components that support it (e.g. Kaniko build po
 
 
 A list of properties to be provided to the build task
+
+|`strategy` +
+string
+|
+
+
+The strategy to use, either `pod` or `routine` (default routine)
 
 
 |===
@@ -4481,12 +6021,36 @@ It's enabled by default whenever a Service is added to the integration (through 
 
 
 
+|`annotations` +
+map[string]string
+|
+
+
+The annotations added to the ingress.
+This can be used to set controller specific annotations, e.g., when using the NGINX Ingress controller:
+See https://github.com/kubernetes/ingress-nginx/blob/main/docs/user-guide/nginx-configuration/annotations.md
+
 |`host` +
 string
 |
 
 
 To configure the host exposed by the ingress.
+
+|`path` +
+string
+|
+
+
+To configure the path exposed by the ingress (default `/`).
+
+|`pathType` +
+*https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#pathtype-v1-networking[Kubernetes networking/v1.PathType]*
+|
+
+
+To configure the path type exposed by the ingress.
+One of `Exact`, `Prefix`, `ImplementationSpecific` (default to `Prefix`).
 
 |`auto` +
 bool
@@ -4969,6 +6533,15 @@ bool
 
 Enable automatic discovery of all trait properties.
 
+|`namespaceLabel` +
+bool
+|
+
+
+Enables the camel-k-operator to set the "bindings.knative.dev/include=true" label to the namespace
+As Knative requires this label to perform injection of K_SINK URL into the service.
+If this is false, the integration pod may start and fail, read the SinkBinding Knative documentation. (default: true)
+
 
 |===
 
@@ -5291,11 +6864,13 @@ by using the `integration` container name.
 The Prometheus trait configures a Prometheus-compatible endpoint. It also creates a `PodMonitor` resource,
 so that the endpoint can be scraped automatically, when using the Prometheus operator.
 
-The metrics are exposed using MicroProfile Metrics.
+The metrics are exposed using Micrometer Metrics.
 
 WARNING: The creation of the `PodMonitor` resource requires the https://github.com/coreos/prometheus-operator[Prometheus Operator]
 custom resource definition to be installed.
 You can set `pod-monitor` to `false` for the Prometheus trait to work without the Prometheus Operator.
+
+WARNING: By default the metrics API is not available in JSON
 
 The Prometheus trait is disabled by default.
 
@@ -5406,11 +6981,9 @@ The Quarkus trait configures the Quarkus runtime.
 
 It's enabled by default.
 
-NOTE: Compiling to a native executable, i.e. when using `package-type=native`, is only supported
-for kamelets, as well as YAML and XML integrations.
-It also requires at least 4GiB of memory, so the Pod running the native build, that is either
-the operator Pod, or the build Pod (depending on the build strategy configured for the platform),
-must have enough memory available.
+NOTE: Compiling to a native executable, i.e. when using `package-type=native`, requires at least
+4GiB of memory, so the Pod running the native build, that is either the operator Pod, or the build
+Pod (depending on the build strategy configured for the platform), must have enough memory available.
 
 
 [cols="2,2a",options="header"]

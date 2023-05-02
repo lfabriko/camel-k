@@ -34,8 +34,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/platform"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
 )
 
 const timeoutAnnotation = "camel.apache.org/timeout"
@@ -75,10 +76,21 @@ func (action *monitorPodAction) Handle(ctx context.Context, build *v1.Build) (*v
 			if pod, err = newBuildPod(ctx, action.reader, build); err != nil {
 				return nil, err
 			}
-			// Set the Build as the Pod owner and controller
-			if err = controllerutil.SetControllerReference(build, pod, action.client.GetScheme()); err != nil {
+
+			// If the Builder Pod is in the Build namespace, we can set the ownership to it. If not (global operator mode)
+			// we set the ownership to the Operator Pod instead
+			var owner metav1.Object
+			owner = build
+			if build.Namespace != pod.Namespace {
+				operatorPod := platform.GetOperatorPod(ctx, action.reader, pod.Namespace)
+				if operatorPod != nil {
+					owner = operatorPod
+				}
+			}
+			if err = controllerutil.SetControllerReference(owner, pod, action.client.GetScheme()); err != nil {
 				return nil, err
 			}
+
 			if err = action.client.Create(ctx, pod); err != nil {
 				return nil, errors.Wrap(err, "cannot create build pod")
 			}
@@ -87,6 +99,7 @@ func (action *monitorPodAction) Handle(ctx context.Context, build *v1.Build) (*v
 			// Emulate context cancellation
 			build.Status.Phase = v1.BuildPhaseInterrupted
 			build.Status.Error = "Pod deleted"
+			monitorFinishedBuild(build)
 			return build, nil
 		}
 	}
@@ -109,6 +122,12 @@ func (action *monitorPodAction) Handle(ctx context.Context, build *v1.Build) (*v
 				// Requeue
 				return nil, err
 			}
+
+			monitorFinishedBuild(build)
+		} else {
+			// Monitor running state of the build - this may have been done already by the schedule action but the build monitor is idempotent
+			// We do this here to potentially restore the running build state in the monitor in case of an operator restart
+			monitorRunningBuild(build)
 		}
 
 	case corev1.PodSucceeded:
@@ -121,6 +140,8 @@ func (action *monitorPodAction) Handle(ctx context.Context, build *v1.Build) (*v
 		finishedAt := action.getTerminatedTime(pod)
 		duration := finishedAt.Sub(build.Status.StartedAt.Time)
 		build.Status.Duration = duration.String()
+
+		monitorFinishedBuild(build)
 
 		buildCreator := kubernetes.GetCamelCreator(build)
 		// Account for the Build metrics
@@ -168,6 +189,8 @@ func (action *monitorPodAction) Handle(ctx context.Context, build *v1.Build) (*v
 		duration := finishedAt.Sub(build.Status.StartedAt.Time)
 		build.Status.Duration = duration.String()
 
+		monitorFinishedBuild(build)
+
 		buildCreator := kubernetes.GetCamelCreator(build)
 		// Account for the Build metrics
 		observeBuildResult(build, build.Status.Phase, buildCreator, duration)
@@ -204,7 +227,7 @@ func (action *monitorPodAction) sigterm(pod *corev1.Pod) error {
 
 		r.VersionedParams(&corev1.PodExecOptions{
 			Container: container.Name,
-			Command:   []string{"kill", "-SIGTERM", "1"},
+			Command:   []string{"/bin/bash", "-c", "kill -SIGTERM 1"},
 			Stdout:    true,
 			Stderr:    true,
 			TTY:       false,

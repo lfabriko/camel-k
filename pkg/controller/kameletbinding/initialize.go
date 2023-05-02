@@ -21,18 +21,19 @@ import (
 	"context"
 	"strings"
 
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/kamelet/repository"
-	"github.com/apache/camel-k/pkg/platform"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/patch"
+	v1alpha1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
+
+	"github.com/apache/camel-k/v2/pkg/kamelet/repository"
+	"github.com/apache/camel-k/v2/pkg/platform"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/patch"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// NewInitializeAction returns a action that initializes the kamelet binding configuration when not provided by the user.
+// NewInitializeAction returns a action that initializes the KameletBinding configuration when not provided by the user.
 func NewInitializeAction() Action {
 	return &initializeAction{}
 }
@@ -45,27 +46,27 @@ func (action *initializeAction) Name() string {
 	return "initialize"
 }
 
-func (action *initializeAction) CanHandle(kameletbinding *v1alpha1.KameletBinding) bool {
-	return kameletbinding.Status.Phase == v1alpha1.KameletBindingPhaseNone
+func (action *initializeAction) CanHandle(binding *v1alpha1.KameletBinding) bool {
+	return binding.Status.Phase == v1alpha1.KameletBindingPhaseNone
 }
 
-func (action *initializeAction) Handle(ctx context.Context, kameletbinding *v1alpha1.KameletBinding) (*v1alpha1.KameletBinding, error) {
-	it, err := CreateIntegrationFor(ctx, action.client, kameletbinding)
+func (action *initializeAction) Handle(ctx context.Context, binding *v1alpha1.KameletBinding) (*v1alpha1.KameletBinding, error) {
+	it, err := CreateIntegrationFor(ctx, action.client, binding)
 	if err != nil {
-		kameletbinding.Status.Phase = v1alpha1.KameletBindingPhaseError
-		kameletbinding.Status.SetErrorCondition(v1alpha1.KameletBindingIntegrationConditionError,
+		binding.Status.Phase = v1alpha1.KameletBindingPhaseError
+		binding.Status.SetErrorCondition(v1alpha1.KameletBindingIntegrationConditionError,
 			"Couldn't create an Integration custom resource", err)
-		return kameletbinding, err
+		return binding, err
 	}
 
 	if _, err := kubernetes.ReplaceResource(ctx, action.client, it); err != nil {
-		return nil, errors.Wrap(err, "could not create integration for kamelet binding")
+		return nil, errors.Wrap(err, "could not create integration for KameletBinding")
 	}
 
 	// propagate Kamelet icon (best effort)
-	action.propagateIcon(ctx, kameletbinding)
+	action.propagateIcon(ctx, binding)
 
-	target := kameletbinding.DeepCopy()
+	target := binding.DeepCopy()
 	target.Status.Phase = v1alpha1.KameletBindingPhaseCreating
 	return target, nil
 }
@@ -73,7 +74,7 @@ func (action *initializeAction) Handle(ctx context.Context, kameletbinding *v1al
 func (action *initializeAction) propagateIcon(ctx context.Context, binding *v1alpha1.KameletBinding) {
 	icon, err := action.findIcon(ctx, binding)
 	if err != nil {
-		action.L.Errorf(err, "cannot find icon for kamelet binding %q", binding.Name)
+		action.L.Errorf(err, "cannot find icon for KameletBinding %q", binding.Name)
 		return
 	}
 	if icon == "" {
@@ -90,12 +91,12 @@ func (action *initializeAction) propagateIcon(ctx context.Context, binding *v1al
 	}
 	p, err := patch.MergePatch(binding, clone)
 	if err != nil {
-		action.L.Errorf(err, "cannot compute patch to update icon for kamelet binding %q", binding.Name)
+		action.L.Errorf(err, "cannot compute patch to update icon for KameletBinding %q", binding.Name)
 		return
 	}
 	if len(p) > 0 {
 		if err := action.client.Patch(ctx, clone, client.RawPatch(types.MergePatchType, p)); err != nil {
-			action.L.Errorf(err, "cannot apply merge patch to update icon for kamelet binding %q", binding.Name)
+			action.L.Errorf(err, "cannot apply merge patch to update icon for KameletBinding %q", binding.Name)
 			return
 		}
 	}

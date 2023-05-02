@@ -58,3 +58,19 @@ type IntegrationPlatformListerExpansion interface{}
 // IntegrationPlatformNamespaceListerExpansion allows custom methods to be added to
 // IntegrationPlatformNamespaceLister.
 type IntegrationPlatformNamespaceListerExpansion interface{}
+
+// KameletListerExpansion allows custom methods to be added to
+// KameletLister.
+type KameletListerExpansion interface{}
+
+// KameletNamespaceListerExpansion allows custom methods to be added to
+// KameletNamespaceLister.
+type KameletNamespaceListerExpansion interface{}
+
+// PipeListerExpansion allows custom methods to be added to
+// PipeLister.
+type PipeListerExpansion interface{}
+
+// PipeNamespaceListerExpansion allows custom methods to be added to
+// PipeNamespaceLister.
+type PipeNamespaceListerExpansion interface{}

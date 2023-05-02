@@ -26,15 +26,14 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	traitv1 "github.com/apache/camel-k/pkg/apis/camel/v1/trait"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/trait"
-	"github.com/apache/camel-k/pkg/util/camel"
-	"github.com/apache/camel-k/pkg/util/kamelets"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/resource"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/trait"
+	"github.com/apache/camel-k/v2/pkg/util/camel"
+	"github.com/apache/camel-k/v2/pkg/util/kamelets"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/resource"
 	"github.com/spf13/cobra"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -52,8 +51,8 @@ func newCmdPromote(rootCmdOptions *RootCmdOptions) (*cobra.Command, *promoteCmdO
 	}
 	cmd := cobra.Command{
 		Use:     "promote my-it --to [namespace]",
-		Short:   "Promote an Integration/KameletBinding from an environment to another",
-		Long:    "Promote an Integration/KameletBinding from an environment to another, for example from a Development environment to a Production environment",
+		Short:   "Promote an Integration/Pipe from an environment to another",
+		Long:    "Promote an Integration/Pipe from an environment to another, for example from a Development environment to a Production environment",
 		PreRunE: decode(&options),
 		RunE:    options.run,
 	}
@@ -72,7 +71,7 @@ type promoteCmdOptions struct {
 
 func (o *promoteCmdOptions) validate(_ *cobra.Command, args []string) error {
 	if len(args) != 1 {
-		return errors.New("promote expects an Integration/KameletBinding name argument")
+		return errors.New("promote expects an Integration/Pipe name argument")
 	}
 	if o.To == "" {
 		return errors.New("promote expects a destination namespace as --to argument")
@@ -103,15 +102,15 @@ func (o *promoteCmdOptions) run(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return errors.Wrap(err, "could not verify operators compatibility")
 	}
-	promoteKameletBinding := false
+	promotePipe := false
 	var sourceIntegration *v1.Integration
-	// We first look if a KameletBinding with the name exists
-	sourceKameletBinding, err := o.getKameletBinding(c, name)
+	// We first look if a Pipe with the name exists
+	sourcePipe, err := o.getPipe(c, name)
 	if err != nil && !k8serrors.IsNotFound(err) {
-		return errors.Wrap(err, "problems looking for KameletBinding "+name)
+		return errors.Wrap(err, "problems looking for Pipe "+name)
 	}
-	if sourceKameletBinding != nil {
-		promoteKameletBinding = true
+	if sourcePipe != nil {
+		promotePipe = true
 	}
 	sourceIntegration, err = o.getIntegration(c, name)
 	if err != nil {
@@ -125,17 +124,17 @@ func (o *promoteCmdOptions) run(cmd *cobra.Command, args []string) error {
 		return errors.Wrap(err, "could not validate destination resources")
 	}
 
-	// KameletBinding promotion
-	if promoteKameletBinding {
-		destKameletBinding := o.editKameletBinding(sourceKameletBinding, sourceIntegration)
+	// Pipe promotion
+	if promotePipe {
+		destPipe := o.editPipe(sourcePipe, sourceIntegration)
 		// Ensure the destination namespace has access to the source namespace images
-		err = addSystemPullerRoleBinding(o.Context, c, sourceIntegration.Namespace, destKameletBinding.Namespace)
+		err = addSystemPullerRoleBinding(o.Context, c, sourceIntegration.Namespace, destPipe.Namespace)
 		if err != nil {
 			return err
 		}
-		replaced, err := o.replaceResource(destKameletBinding)
+		replaced, err := o.replaceResource(destPipe)
 		if o.OutputFormat != "" {
-			return showKameletBindingOutput(cmd, destKameletBinding, o.OutputFormat, c.GetScheme())
+			return showPipeOutput(cmd, destPipe, o.OutputFormat, c.GetScheme())
 		}
 		if !replaced {
 			fmt.Fprintln(cmd.OutOrStdout(), `Promoted Integration "`+name+`" created`)
@@ -178,8 +177,8 @@ func checkOpsCompatibility(cmd *cobra.Command, source, dest map[string]string) e
 	return nil
 }
 
-func (o *promoteCmdOptions) getKameletBinding(c client.Client, name string) (*v1alpha1.KameletBinding, error) {
-	it := v1alpha1.NewKameletBinding(o.Namespace, name)
+func (o *promoteCmdOptions) getPipe(c client.Client, name string) (*v1.Pipe, error) {
+	it := v1.NewPipe(o.Namespace, name)
 	key := k8sclient.ObjectKey{
 		Name:      name,
 		Namespace: o.Namespace,
@@ -423,7 +422,7 @@ func existsPv(ctx context.Context, c client.Client, name string, namespace strin
 }
 
 func existsKamelet(ctx context.Context, c client.Client, name string, namespace string) bool {
-	var obj v1alpha1.Kamelet
+	var obj v1.Kamelet
 	key := k8sclient.ObjectKey{
 		Name:      name,
 		Namespace: namespace,
@@ -446,8 +445,8 @@ func (o *promoteCmdOptions) editIntegration(it *v1.Integration) *v1.Integration 
 	return &dst
 }
 
-func (o *promoteCmdOptions) editKameletBinding(kb *v1alpha1.KameletBinding, it *v1.Integration) *v1alpha1.KameletBinding {
-	dst := v1alpha1.NewKameletBinding(o.To, kb.Name)
+func (o *promoteCmdOptions) editPipe(kb *v1.Pipe, it *v1.Integration) *v1.Pipe {
+	dst := v1.NewPipe(o.To, kb.Name)
 	dst.Spec = *kb.Spec.DeepCopy()
 	contImage := it.Status.Image
 	if dst.Spec.Integration == nil {

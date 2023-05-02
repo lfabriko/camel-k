@@ -29,6 +29,7 @@ rules:
   - integrationkits/finalizers
   - integrationplatforms/finalizers
   - integrations/finalizers
+  - pipes/finalizers
   - kameletbindings/finalizers
   verbs:
   - update

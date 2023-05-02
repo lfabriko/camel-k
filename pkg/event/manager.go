@@ -27,11 +27,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/log"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/log"
 )
 
 const (
@@ -70,12 +70,12 @@ const (
 	// ReasonKameletPhaseUpdated --.
 	ReasonKameletPhaseUpdated = "KameletPhaseUpdated"
 
-	// ReasonKameletBindingError --.
-	ReasonKameletBindingError = "KameletBindingError"
-	// ReasonKameletBindingConditionChanged --.
-	ReasonKameletBindingConditionChanged = "KameletBindingConditionChanged"
-	// ReasonKameletBindingPhaseUpdated --.
-	ReasonKameletBindingPhaseUpdated = "KameletBindingPhaseUpdated"
+	// ReasonPipeError --.
+	ReasonPipeError = "PipeError"
+	// ReasonPipeConditionChanged --.
+	ReasonPipeConditionChanged = "PipeConditionChanged"
+	// ReasonPipePhaseUpdated --.
+	ReasonPipePhaseUpdated = "PipePhaseUpdated"
 
 	// ReasonRelatedObjectChanged --.
 	ReasonRelatedObjectChanged = "ReasonRelatedObjectChanged"
@@ -169,7 +169,7 @@ func NotifyIntegrationPlatformError(ctx context.Context, c client.Client, record
 }
 
 // NotifyKameletUpdated automatically generates events when a Kamelet changes.
-func NotifyKameletUpdated(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1alpha1.Kamelet) {
+func NotifyKameletUpdated(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1.Kamelet) {
 	if newResource == nil {
 		return
 	}
@@ -179,14 +179,14 @@ func NotifyKameletUpdated(ctx context.Context, c client.Client, recorder record.
 		oldPhase = string(old.Status.Phase)
 		oldConditions = old.Status.GetConditions()
 	}
-	if newResource.Status.Phase != v1alpha1.KameletPhaseNone {
+	if newResource.Status.Phase != v1.KameletPhaseNone {
 		notifyIfConditionUpdated(recorder, newResource, oldConditions, newResource.Status.GetConditions(), "Kamelet", newResource.Name, ReasonKameletConditionChanged)
 	}
 	notifyIfPhaseUpdated(ctx, c, recorder, newResource, oldPhase, string(newResource.Status.Phase), "Kamelet", newResource.Name, ReasonKameletPhaseUpdated, "")
 }
 
 // NotifyKameletError automatically generates error events when the kamelet reconcile cycle phase has an error.
-func NotifyKameletError(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1alpha1.Kamelet, err error) {
+func NotifyKameletError(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1.Kamelet, err error) {
 	k := old
 	if newResource != nil {
 		k = newResource
@@ -197,7 +197,66 @@ func NotifyKameletError(ctx context.Context, c client.Client, recorder record.Ev
 	recorder.Eventf(k, corev1.EventTypeWarning, ReasonKameletError, "Cannot reconcile Kamelet %s: %v", k.Name, err)
 }
 
+// NotifyCamelCatalogUpdated automatically generates events when a CamelCatalog changes.
+func NotifyCamelCatalogUpdated(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1.CamelCatalog) {
+	if newResource == nil {
+		return
+	}
+	oldPhase := ""
+	var oldConditions []v1.ResourceCondition
+	if old != nil {
+		oldPhase = string(old.Status.Phase)
+		oldConditions = old.Status.GetConditions()
+	}
+	if newResource.Status.Phase != v1.CamelCatalogPhaseNone {
+		notifyIfConditionUpdated(recorder, newResource, oldConditions, newResource.Status.GetConditions(), "CamelCatalog", newResource.Name, ReasonKameletConditionChanged)
+	}
+	notifyIfPhaseUpdated(ctx, c, recorder, newResource, oldPhase, string(newResource.Status.Phase), "CamelCatalog", newResource.Name, ReasonKameletPhaseUpdated, "")
+}
+
+// NotifyCamelCatalogError automatically generates error events when the CamelCatalog reconcile cycle phase has an error.
+func NotifyCamelCatalogError(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1.CamelCatalog, err error) {
+	k := old
+	if newResource != nil {
+		k = newResource
+	}
+	if k == nil {
+		return
+	}
+	recorder.Eventf(k, corev1.EventTypeWarning, ReasonKameletError, "Cannot reconcile CamelCatalog %s: %v", k.Name, err)
+}
+
+// NotifyPipeUpdated automatically generates events when a Pipe changes.
+func NotifyPipeUpdated(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1.Pipe) {
+	if newResource == nil {
+		return
+	}
+	oldPhase := ""
+	var oldConditions []v1.ResourceCondition
+	if old != nil {
+		oldPhase = string(old.Status.Phase)
+		oldConditions = old.Status.GetConditions()
+	}
+	if newResource.Status.Phase != v1.PipePhaseNone {
+		notifyIfConditionUpdated(recorder, newResource, oldConditions, newResource.Status.GetConditions(), "Pipe", newResource.Name, ReasonPipeConditionChanged)
+	}
+	notifyIfPhaseUpdated(ctx, c, recorder, newResource, oldPhase, string(newResource.Status.Phase), "Pipe", newResource.Name, ReasonPipePhaseUpdated, "")
+}
+
+// NotifyPipeError automatically generates error events when the binding reconcile cycle phase has an error.
+func NotifyPipeError(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1.Pipe, err error) {
+	k := old
+	if newResource != nil {
+		k = newResource
+	}
+	if k == nil {
+		return
+	}
+	recorder.Eventf(k, corev1.EventTypeWarning, ReasonKameletError, "Cannot reconcile Pipe %s: %v", k.Name, err)
+}
+
 // NotifyKameletBindingUpdated automatically generates events when a KameletBinding changes.
+// Deprecated.
 func NotifyKameletBindingUpdated(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1alpha1.KameletBinding) {
 	if newResource == nil {
 		return
@@ -209,12 +268,13 @@ func NotifyKameletBindingUpdated(ctx context.Context, c client.Client, recorder 
 		oldConditions = old.Status.GetConditions()
 	}
 	if newResource.Status.Phase != v1alpha1.KameletBindingPhaseNone {
-		notifyIfConditionUpdated(recorder, newResource, oldConditions, newResource.Status.GetConditions(), "KameletBinding", newResource.Name, ReasonKameletBindingConditionChanged)
+		notifyIfConditionUpdated(recorder, newResource, oldConditions, newResource.Status.GetConditions(), "KameletBinding", newResource.Name, ReasonPipeConditionChanged)
 	}
-	notifyIfPhaseUpdated(ctx, c, recorder, newResource, oldPhase, string(newResource.Status.Phase), "KameletBinding", newResource.Name, ReasonKameletBindingPhaseUpdated, "")
+	notifyIfPhaseUpdated(ctx, c, recorder, newResource, oldPhase, string(newResource.Status.Phase), "KameletBinding", newResource.Name, ReasonPipePhaseUpdated, "")
 }
 
-// NotifyKameletBindingError automatically generates error events when the kameletBinding reconcile cycle phase has an error.
+// NotifyKameletBindingError automatically generates error events when the binding reconcile cycle phase has an error.
+// Deprecated.
 func NotifyKameletBindingError(ctx context.Context, c client.Client, recorder record.EventRecorder, old, newResource *v1alpha1.KameletBinding, err error) {
 	k := old
 	if newResource != nil {

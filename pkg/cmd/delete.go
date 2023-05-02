@@ -23,10 +23,10 @@ import (
 	"fmt"
 	"strconv"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
 	"github.com/spf13/cobra"
 	k8errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,28 +136,28 @@ func getIntegration(ctx context.Context, c client.Client, name string, namespace
 }
 
 func deleteIntegration(ctx context.Context, cmd *cobra.Command, c client.Client, integration *v1.Integration) error {
-	deleted, binding, err := deleteKameletBindingIfExists(ctx, c, integration)
+	deleted, binding, err := deletePipeIfExists(ctx, c, integration)
 	if err != nil {
 		return err
 	}
 	if deleted {
-		// Deleting KameletBinding will automatically clean up the integration
-		fmt.Fprintln(cmd.OutOrStdout(), "KameletBinding "+binding+" deleted")
+		// Deleting Pipe will automatically clean up the integration
+		fmt.Fprintln(cmd.OutOrStdout(), "Pipe "+binding+" deleted")
 		return nil
 	}
 	return c.Delete(ctx, integration)
 }
 
-func deleteKameletBindingIfExists(ctx context.Context, c client.Client, integration *v1.Integration) (bool, string, error) {
+func deletePipeIfExists(ctx context.Context, c client.Client, integration *v1.Integration) (bool, string, error) {
 	kind, name := findCreator(integration)
-	if kind != v1alpha1.KameletBindingKind || name == "" {
+	if kind != v1.PipeKind || name == "" {
 		return false, "", nil
 	}
 
-	binding := v1alpha1.KameletBinding{
+	binding := v1.Pipe{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       kind,
-			APIVersion: v1alpha1.SchemeGroupVersion.String(),
+			APIVersion: v1.SchemeGroupVersion.String(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: integration.Namespace,
@@ -178,7 +178,7 @@ func findCreator(integration *v1.Integration) (string, string) {
 	if kind == "" && name == "" {
 		// Look up in OwnerReferences in case creator labels are absent
 		for _, owner := range integration.GetOwnerReferences() {
-			if owner.Kind == v1alpha1.KameletBindingKind {
+			if owner.Kind == v1.PipeKind {
 				return owner.Kind, owner.Name
 			}
 		}

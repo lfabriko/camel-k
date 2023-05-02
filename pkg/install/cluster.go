@@ -31,12 +31,12 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/resources"
+	"github.com/apache/camel-k/v2/pkg/util/knative"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	pkgerr "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
-
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/resources"
-	"github.com/apache/camel-k/pkg/util/knative"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
 )
 
 func SetupClusterWideResourcesOrCollect(
@@ -206,12 +206,18 @@ func installCRDs(ctx context.Context, c client.Client, collection *kubernetes.Co
 		return err
 	}
 
+	// Install CRD for Pipe (if needed)
+	if err := installCRD(ctx, c, "Pipe", "v1", "camel.apache.org_pipes.yaml",
+		v1beta1Customizer, collection, force); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func downgradeToCRDv1beta1(isAPIExtensionsV1 bool) ResourceCustomizer {
 	return func(object ctrl.Object) ctrl.Object {
-		// Remove default values in v1beta1 Integration and KameletBinding CRDs,
+		// Remove default values in v1beta1 Integration and Pipe CRDs,
 		removeDefaultFromCrd := func(crd *apiextensionsv1beta1.CustomResourceDefinition, property string) {
 			defaultValue := apiextensionsv1beta1.JSONSchemaProps{
 				Default: nil,
@@ -221,7 +227,7 @@ func downgradeToCRDv1beta1(isAPIExtensionsV1 bool) ResourceCustomizer {
 					Properties["spec"].Properties["template"].Properties["spec"].Properties[property].Items.Schema.
 					Properties["ports"].Items.Schema.Properties["protocol"] = defaultValue
 			}
-			if crd.Name == "kameletbindings.camel.apache.org" {
+			if crd.Name == "pipes.camel.apache.org" {
 				crd.Spec.Validation.OpenAPIV3Schema.Properties["spec"].Properties["integration"].Properties["template"].
 					Properties["spec"].Properties[property].Items.Schema.Properties["ports"].Items.Schema.
 					Properties["protocol"] = defaultValue
@@ -265,54 +271,66 @@ func WaitForAllCrdInstallation(ctx context.Context, clientProvider client.Provid
 		if c, err = clientProvider.Get(); err != nil {
 			return err
 		}
-		var inst bool
-		if inst, err = areAllCrdInstalled(c); err != nil {
+		var errno int
+		if errno, err = areAllCrdInstalled(c); err != nil {
 			return err
-		} else if inst {
+		}
+		if errno == 0 {
 			return nil
 		}
 		// Check after 2 seconds if not expired
 		if time.Now().After(deadline) {
 			return fmt.Errorf(
-				"cannot check CRD installation after %s seconds",
-				strconv.FormatInt(timeout.Nanoseconds()/1000000000, 10))
+				"cannot check CRD installation after %s seconds (errno %d)",
+				strconv.FormatInt(timeout.Nanoseconds()/1000000000, 10),
+				errno)
 		}
 		time.Sleep(2 * time.Second)
 	}
 }
 
-func areAllCrdInstalled(c client.Client) (bool, error) {
+func areAllCrdInstalled(c client.Client) (int, error) {
 	if ok, err := isCrdInstalled(c, "IntegrationPlatform", "v1"); err != nil {
-		return ok, err
+		return 1, pkgerr.Wrap(err, "Error installing IntegrationPlatform CRDs")
 	} else if !ok {
-		return false, nil
+		return 1, nil
 	}
 	if ok, err := isCrdInstalled(c, "IntegrationKit", "v1"); err != nil {
-		return ok, err
+		return 2, pkgerr.Wrap(err, "Error installing IntegrationKit CRDs")
 	} else if !ok {
-		return false, nil
+		return 2, nil
 	}
 	if ok, err := isCrdInstalled(c, "Integration", "v1"); err != nil {
-		return ok, err
+		return 3, pkgerr.Wrap(err, "Error installing Integration CRDs")
 	} else if !ok {
-		return false, nil
+		return 3, nil
 	}
 	if ok, err := isCrdInstalled(c, "CamelCatalog", "v1"); err != nil {
-		return ok, err
+		return 4, pkgerr.Wrap(err, "Error installing CamelCatalog CRDs")
 	} else if !ok {
-		return false, nil
+		return 4, nil
 	}
 	if ok, err := isCrdInstalled(c, "Build", "v1"); err != nil {
-		return ok, err
+		return 5, pkgerr.Wrap(err, "Error installing Build CRDs")
 	} else if !ok {
-		return false, nil
+		return 5, nil
 	}
-	if ok, err := isCrdInstalled(c, "Kamelet", "v1alpha1"); err != nil {
-		return ok, err
+	if ok, err := isCrdInstalled(c, "Kamelet", "v1"); err != nil {
+		return 6, pkgerr.Wrap(err, "Error installing Kamelet CRDs")
 	} else if !ok {
-		return false, nil
+		return 6, nil
 	}
-	return isCrdInstalled(c, "KameletBinding", "v1alpha1")
+	if ok, err := isCrdInstalled(c, "KameletBinding", "v1alpha1"); err != nil {
+		return 7, pkgerr.Wrap(err, "Error installing KameletBindings CRDs")
+	} else if !ok {
+		return 7, nil
+	}
+	if ok, err := isCrdInstalled(c, "Pipe", "v1"); err != nil {
+		return 8, pkgerr.Wrap(err, "Error installing Pipe CRDs")
+	} else if !ok {
+		return 8, nil
+	}
+	return 0, nil
 }
 
 func isCrdInstalled(c client.Client, kind string, version string) (bool, error) {

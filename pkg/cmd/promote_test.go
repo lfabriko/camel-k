@@ -21,11 +21,10 @@ import (
 	"fmt"
 	"testing"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/platform"
-	"github.com/apache/camel-k/pkg/util/defaults"
-	"github.com/apache/camel-k/pkg/util/test"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/platform"
+	"github.com/apache/camel-k/v2/pkg/util/defaults"
+	"github.com/apache/camel-k/v2/pkg/util/test"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -63,8 +62,10 @@ func TestIntegrationNotCompatible(t *testing.T) {
 	dstPlatform.Status.Build.RuntimeVersion = "0.0.1"
 	dstPlatform.Status.Phase = v1.IntegrationPlatformPhaseReady
 	defaultIntegration := nominalIntegration("my-it-test")
+	srcCatalog := createCamelCatalog(srcPlatform)
+	dstCatalog := createCamelCatalog(dstPlatform)
 
-	promoteCmdOptions, promoteCmd, _ := initializePromoteCmdOptions(t, &srcPlatform, &dstPlatform, &defaultIntegration)
+	promoteCmdOptions, promoteCmd, _ := initializePromoteCmdOptions(t, &srcPlatform, &dstPlatform, &defaultIntegration, &srcCatalog, &dstCatalog)
 	_, err := test.ExecuteCommand(promoteCmd, cmdPromote, "my-it-test", "--to", "prod-namespace", "-o", "yaml", "-n", "default")
 	assert.Equal(t, "yaml", promoteCmdOptions.OutputFormat)
 	assert.NotNil(t, err)
@@ -84,8 +85,10 @@ func TestIntegrationDryRun(t *testing.T) {
 	dstPlatform.Status.Build.RuntimeVersion = defaults.DefaultRuntimeVersion
 	dstPlatform.Status.Phase = v1.IntegrationPlatformPhaseReady
 	defaultIntegration := nominalIntegration("my-it-test")
+	srcCatalog := createCamelCatalog(srcPlatform)
+	dstCatalog := createCamelCatalog(dstPlatform)
 
-	promoteCmdOptions, promoteCmd, _ := initializePromoteCmdOptions(t, &srcPlatform, &dstPlatform, &defaultIntegration)
+	promoteCmdOptions, promoteCmd, _ := initializePromoteCmdOptions(t, &srcPlatform, &dstPlatform, &defaultIntegration, &srcCatalog, &dstCatalog)
 	output, err := test.ExecuteCommand(promoteCmd, cmdPromote, "my-it-test", "--to", "prod-namespace", "-o", "yaml", "-n", "default")
 	assert.Equal(t, "yaml", promoteCmdOptions.OutputFormat)
 	assert.Nil(t, err)
@@ -110,7 +113,7 @@ func nominalIntegration(name string) v1.Integration {
 	return it
 }
 
-func TestKameletBindingDryRun(t *testing.T) {
+func TestPipeDryRun(t *testing.T) {
 	srcPlatform := v1.NewIntegrationPlatform("default", platform.DefaultPlatformName)
 	srcPlatform.Status.Version = defaults.Version
 	srcPlatform.Status.Build.RuntimeVersion = defaults.DefaultRuntimeVersion
@@ -119,15 +122,17 @@ func TestKameletBindingDryRun(t *testing.T) {
 	dstPlatform.Status.Version = defaults.Version
 	dstPlatform.Status.Build.RuntimeVersion = defaults.DefaultRuntimeVersion
 	dstPlatform.Status.Phase = v1.IntegrationPlatformPhaseReady
-	defaultKB := nominalKameletBinding("my-kb-test")
+	defaultKB := nominalPipe("my-kb-test")
 	defaultIntegration := nominalIntegration("my-kb-test")
+	srcCatalog := createCamelCatalog(srcPlatform)
+	dstCatalog := createCamelCatalog(dstPlatform)
 
-	promoteCmdOptions, promoteCmd, _ := initializePromoteCmdOptions(t, &srcPlatform, &dstPlatform, &defaultKB, &defaultIntegration)
+	promoteCmdOptions, promoteCmd, _ := initializePromoteCmdOptions(t, &srcPlatform, &dstPlatform, &defaultKB, &defaultIntegration, &srcCatalog, &dstCatalog)
 	output, err := test.ExecuteCommand(promoteCmd, cmdPromote, "my-kb-test", "--to", "prod-namespace", "-o", "yaml", "-n", "default")
 	assert.Equal(t, "yaml", promoteCmdOptions.OutputFormat)
 	assert.Nil(t, err)
-	assert.Equal(t, `apiVersion: camel.apache.org/v1alpha1
-kind: KameletBinding
+	assert.Equal(t, `apiVersion: camel.apache.org/v1
+kind: Pipe
 metadata:
   creationTimestamp: null
   name: my-kb-test
@@ -144,8 +149,14 @@ status: {}
 `, output)
 }
 
-func nominalKameletBinding(name string) v1alpha1.KameletBinding {
-	kb := v1alpha1.NewKameletBinding("default", name)
-	kb.Status.Phase = v1alpha1.KameletBindingPhaseReady
+func nominalPipe(name string) v1.Pipe {
+	kb := v1.NewPipe("default", name)
+	kb.Status.Phase = v1.PipePhaseReady
 	return kb
+}
+
+func createCamelCatalog(platform v1.IntegrationPlatform) v1.CamelCatalog {
+	c := v1.NewCamelCatalog(platform.Namespace, defaults.DefaultRuntimeVersion)
+	c.Spec = v1.CamelCatalogSpec{Runtime: v1.RuntimeSpec{Provider: platform.Status.Build.RuntimeProvider, Version: platform.Status.Build.RuntimeVersion}}
+	return c
 }

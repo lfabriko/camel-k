@@ -20,9 +20,9 @@ package kamelet
 import (
 	"context"
 
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/util/log"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/util/log"
 )
 
 // Action --.
@@ -34,10 +34,10 @@ type Action interface {
 	Name() string
 
 	// returns true if the action can handle the kamelet
-	CanHandle(kamelet *v1alpha1.Kamelet) bool
+	CanHandle(kamelet *v1.Kamelet) bool
 
 	// executes the handling function
-	Handle(ctx context.Context, kamelet *v1alpha1.Kamelet) (*v1alpha1.Kamelet, error)
+	Handle(ctx context.Context, kamelet *v1.Kamelet) (*v1.Kamelet, error)
 }
 
 type baseAction struct {

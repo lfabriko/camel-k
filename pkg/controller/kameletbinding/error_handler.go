@@ -21,12 +21,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/util/bindings"
+	"github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
+	"github.com/apache/camel-k/v2/pkg/util/bindings"
 	"github.com/pkg/errors"
 )
 
-func maybeErrorHandler(errHandlConf *v1alpha1.ErrorHandlerSpec, bindingContext bindings.BindingContext) (*bindings.Binding, error) {
+func maybeErrorHandler(errHandlConf *v1alpha1.ErrorHandlerSpec, bindingContext bindings.V1alpha1BindingContext) (*bindings.Binding, error) {
 	var errorHandlerBinding *bindings.Binding
 	if errHandlConf != nil {
 		errorHandlerSpec, err := parseErrorHandler(errHandlConf.RawMessage)
@@ -35,7 +35,7 @@ func maybeErrorHandler(errHandlConf *v1alpha1.ErrorHandlerSpec, bindingContext b
 		}
 		// We need to get the translated URI from any referenced resource (ie, kamelets)
 		if errorHandlerSpec.Type() == v1alpha1.ErrorHandlerTypeSink {
-			errorHandlerBinding, err = bindings.Translate(bindingContext, bindings.EndpointContext{Type: v1alpha1.EndpointTypeErrorHandler}, *errorHandlerSpec.Endpoint())
+			errorHandlerBinding, err = bindings.TranslateV1alpha1(bindingContext, bindings.V1alpha1EndpointContext{Type: v1alpha1.EndpointTypeErrorHandler}, *errorHandlerSpec.Endpoint())
 			if err != nil {
 				return nil, errors.Wrap(err, "could not determine error handler URI")
 			}
@@ -79,8 +79,10 @@ func parseErrorHandler(rawMessage v1alpha1.RawMessage) (v1alpha1.ErrorHandler, e
 			return nil, errors.Errorf("Unknown error handler type %s", errHandlType)
 		}
 
-		err := json.Unmarshal(errHandlValue, dst)
-		if err != nil {
+		if err = json.Unmarshal(errHandlValue, dst); err != nil {
+			return nil, err
+		}
+		if err = dst.Validate(); err != nil {
 			return nil, err
 		}
 

@@ -29,7 +29,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"reflect"
@@ -71,32 +70,33 @@ import (
 	projectv1 "github.com/openshift/api/project/v1"
 	routev1 "github.com/openshift/api/route/v1"
 
-	"github.com/apache/camel-k/e2e/support/util"
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	traitv1 "github.com/apache/camel-k/pkg/apis/camel/v1/trait"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/cmd"
-	"github.com/apache/camel-k/pkg/install"
-	"github.com/apache/camel-k/pkg/platform"
-	"github.com/apache/camel-k/pkg/util/defaults"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/log"
-	"github.com/apache/camel-k/pkg/util/openshift"
-	"github.com/apache/camel-k/pkg/util/patch"
+	"github.com/apache/camel-k/v2/e2e/support/util"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
+	v1alpha1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/cmd"
+	"github.com/apache/camel-k/v2/pkg/install"
+	"github.com/apache/camel-k/v2/pkg/platform"
+	"github.com/apache/camel-k/v2/pkg/util/defaults"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/log"
+	"github.com/apache/camel-k/v2/pkg/util/openshift"
+	"github.com/apache/camel-k/v2/pkg/util/patch"
 
 	// let's enable addons in all tests
-	_ "github.com/apache/camel-k/addons"
+	_ "github.com/apache/camel-k/v2/addons"
 )
 
 const kubeConfigEnvVar = "KUBECONFIG"
+const ciPID = "/tmp/ci-k8s-pid"
 
 var TestTimeoutShort = 1 * time.Minute
 var TestTimeoutMedium = 5 * time.Minute
-var TestTimeoutLong = 10 * time.Minute
+var TestTimeoutLong = 15 * time.Minute
 
 // TestTimeoutVeryLong should be used only for testing native builds.
-var TestTimeoutVeryLong = 90 * time.Minute
+var TestTimeoutVeryLong = 60 * time.Minute
 
 var NoOlmOperatorImage string
 
@@ -277,6 +277,17 @@ func kamelInstallWithContext(ctx context.Context, operatorID string, namespace s
 			fmt.Printf("Adding maven cli option %s\n", mc)
 			installArgs = append(installArgs, "--maven-cli-option", mc)
 		}
+	}
+
+	opImage := os.Getenv("CAMEL_K_TEST_OPERATOR_IMAGE")
+	if opImage != "" {
+		fmt.Printf("Setting operator image to %s\n", opImage)
+		installArgs = append(installArgs, "--operator-image", opImage)
+	}
+	opImagePullPolicy := os.Getenv("CAMEL_K_TEST_OPERATOR_IMAGE_PULL_POLICY")
+	if opImagePullPolicy != "" {
+		fmt.Printf("Setting operator image pull policy to %s\n", opImagePullPolicy)
+		installArgs = append(installArgs, "--operator-image-pull-policy", opImagePullPolicy)
 	}
 
 	installArgs = append(installArgs, args...)
@@ -476,7 +487,7 @@ func Logs(ns, podName string, options corev1.PodLogOptions) func() string {
 			}
 		}()
 
-		bytes, err := ioutil.ReadAll(byteReader)
+		bytes, err := io.ReadAll(byteReader)
 		if err != nil {
 			log.Error(err, "Error while reading container logs")
 			return ""
@@ -1015,6 +1026,16 @@ func KitPhase(ns, name string) func() v1.IntegrationKitPhase {
 	}
 }
 
+func KitCondition(ns string, name string, conditionType v1.IntegrationKitConditionType) func() *v1.IntegrationKitCondition {
+	return func() *v1.IntegrationKitCondition {
+		kt := Kit(ns, name)()
+		if kt == nil {
+			return nil
+		}
+		return kt.Status.GetCondition(conditionType)
+	}
+}
+
 func UpdateIntegration(ns string, name string, mutate func(it *v1.Integration)) error {
 	it := Integration(ns, name)()
 	if it == nil {
@@ -1047,9 +1068,9 @@ func ScaleIntegration(ns string, name string, replicas int32) error {
 	})
 }
 
-func KameletBinding(ns string, name string) func() *v1alpha1.KameletBinding {
-	return func() *v1alpha1.KameletBinding {
-		klb := v1alpha1.NewKameletBinding(ns, name)
+func Pipe(ns string, name string) func() *v1.Pipe {
+	return func() *v1.Pipe {
+		klb := v1.NewPipe(ns, name)
 		key := ctrl.ObjectKey{
 			Namespace: ns,
 			Name:      name,
@@ -1063,9 +1084,9 @@ func KameletBinding(ns string, name string) func() *v1alpha1.KameletBinding {
 	}
 }
 
-func KameletBindingPhase(ns string, name string) func() v1alpha1.KameletBindingPhase {
-	return func() v1alpha1.KameletBindingPhase {
-		klb := KameletBinding(ns, name)()
+func PipePhase(ns string, name string) func() v1.PipePhase {
+	return func() v1.PipePhase {
+		klb := Pipe(ns, name)()
 		if klb == nil {
 			return ""
 		}
@@ -1073,9 +1094,9 @@ func KameletBindingPhase(ns string, name string) func() v1alpha1.KameletBindingP
 	}
 }
 
-func KameletBindingSpecReplicas(ns string, name string) func() *int32 {
+func PipeSpecReplicas(ns string, name string) func() *int32 {
 	return func() *int32 {
-		klb := KameletBinding(ns, name)()
+		klb := Pipe(ns, name)()
 		if klb == nil {
 			return nil
 		}
@@ -1083,9 +1104,9 @@ func KameletBindingSpecReplicas(ns string, name string) func() *int32 {
 	}
 }
 
-func KameletBindingStatusReplicas(ns string, name string) func() *int32 {
+func PipeStatusReplicas(ns string, name string) func() *int32 {
 	return func() *int32 {
-		klb := KameletBinding(ns, name)()
+		klb := Pipe(ns, name)()
 		if klb == nil {
 			return nil
 		}
@@ -1093,9 +1114,9 @@ func KameletBindingStatusReplicas(ns string, name string) func() *int32 {
 	}
 }
 
-func KameletBindingCondition(ns string, name string, conditionType v1alpha1.KameletBindingConditionType) func() *v1alpha1.KameletBindingCondition {
-	return func() *v1alpha1.KameletBindingCondition {
-		kb := KameletBinding(ns, name)()
+func PipeCondition(ns string, name string, conditionType v1.PipeConditionType) func() *v1.PipeCondition {
+	return func() *v1.PipeCondition {
+		kb := Pipe(ns, name)()
 		if kb == nil {
 			return nil
 		}
@@ -1107,32 +1128,32 @@ func KameletBindingCondition(ns string, name string, conditionType v1alpha1.Kame
 	}
 }
 
-func KameletBindingConditionStatusExtract(c *v1alpha1.KameletBindingCondition) corev1.ConditionStatus {
+func PipeConditionStatusExtract(c *v1.PipeCondition) corev1.ConditionStatus {
 	if c == nil {
 		return ""
 	}
 	return c.Status
 }
 
-func KameletBindingConditionReason(c *v1alpha1.KameletBindingCondition) string {
+func PipeConditionReason(c *v1.PipeCondition) string {
 	if c == nil {
 		return ""
 	}
 	return c.Reason
 }
 
-func KameletBindingConditionMessage(c *v1alpha1.KameletBindingCondition) string {
+func PipeConditionMessage(c *v1.PipeCondition) string {
 	if c == nil {
 		return ""
 	}
 	return c.Message
 }
 
-func KameletBindingConditionStatus(ns string, name string, conditionType v1alpha1.KameletBindingConditionType) func() corev1.ConditionStatus {
+func PipeConditionStatus(ns string, name string, conditionType v1.PipeConditionType) func() corev1.ConditionStatus {
 	return func() corev1.ConditionStatus {
-		klb := KameletBinding(ns, name)()
+		klb := Pipe(ns, name)()
 		if klb == nil {
-			return "KameletBindingMissing"
+			return "PipeMissing"
 		}
 		c := klb.Status.GetCondition(conditionType)
 		if c == nil {
@@ -1142,10 +1163,10 @@ func KameletBindingConditionStatus(ns string, name string, conditionType v1alpha
 	}
 }
 
-func UpdateKameletBinding(ns string, name string, upd func(it *v1alpha1.KameletBinding)) error {
-	klb := KameletBinding(ns, name)()
+func UpdatePipe(ns string, name string, upd func(it *v1.Pipe)) error {
+	klb := Pipe(ns, name)()
 	if klb == nil {
-		return fmt.Errorf("no kamelet binding named %s found", name)
+		return fmt.Errorf("no Pipe named %s found", name)
 	}
 	target := klb.DeepCopy()
 	upd(target)
@@ -1159,16 +1180,16 @@ func UpdateKameletBinding(ns string, name string, upd func(it *v1alpha1.KameletB
 	return TestClient().Patch(TestContext, target, ctrl.RawPatch(types.MergePatchType, p))
 }
 
-func ScaleKameletBinding(ns string, name string, replicas int32) error {
-	return UpdateKameletBinding(ns, name, func(klb *v1alpha1.KameletBinding) {
+func ScalePipe(ns string, name string, replicas int32) error {
+	return UpdatePipe(ns, name, func(klb *v1.Pipe) {
 		klb.Spec.Replicas = &replicas
 	})
 }
 
-func AssignKameletBindingToOperator(ns, name, operator string) error {
-	klb := KameletBinding(ns, name)()
+func AssignPipeToOperator(ns, name, operator string) error {
+	klb := Pipe(ns, name)()
 	if klb == nil {
-		return fmt.Errorf("cannot assign kamelet binding %q to operator: kamelet binding not found", name)
+		return fmt.Errorf("cannot assign Pipe %q to operator:Pipe not found", name)
 	}
 
 	klb.SetOperatorID(operator)
@@ -1335,6 +1356,61 @@ func Configmap(ns string, name string) func() *corev1.ConfigMap {
 			return nil
 		}
 		return &cm
+	}
+}
+
+func BuilderPod(ns string, name string) func() *corev1.Pod {
+	return func() *corev1.Pod {
+		pod := corev1.Pod{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: corev1.SchemeGroupVersion.String(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: ns,
+				Name:      name,
+			},
+		}
+		key := ctrl.ObjectKey{
+			Namespace: ns,
+			Name:      name,
+		}
+		if err := TestClient().Get(TestContext, key, &pod); err != nil && k8serrors.IsNotFound(err) {
+			return nil
+		} else if err != nil {
+			log.Error(err, "Error while retrieving pod "+name)
+			return nil
+		}
+		return &pod
+	}
+}
+
+func BuilderPodPhase(ns string, name string) func() corev1.PodPhase {
+	return func() corev1.PodPhase {
+		pod := BuilderPod(ns, name)()
+		if pod == nil {
+			return ""
+		}
+		return pod.Status.Phase
+	}
+}
+
+func BuilderPodsCount(ns string) func() int {
+	return func() int {
+		lst := corev1.PodList{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "Pod",
+				APIVersion: corev1.SchemeGroupVersion.String(),
+			},
+		}
+		if err := TestClient().List(TestContext, &lst,
+			ctrl.InNamespace(ns),
+			ctrl.MatchingLabels{
+				"camel.apache.org/component": "builder",
+			}); err != nil {
+			failTest(err)
+		}
+		return len(lst.Items)
 	}
 }
 
@@ -1535,6 +1611,16 @@ func BuildPhase(ns, name string) func() v1.BuildPhase {
 	}
 }
 
+func BuildFailureRecovery(ns, name string) func() int {
+	return func() int {
+		build := Build(ns, name)()
+		if build != nil {
+			return build.Status.Failure.Recovery.Attempt
+		}
+		return 0
+	}
+}
+
 func HasPlatform(ns string) func() bool {
 	return func() bool {
 		lst := v1.NewIntegrationPlatformList()
@@ -1572,6 +1658,86 @@ func Platform(ns string) func() *v1.IntegrationPlatform {
 			return pl
 		}
 		return &lst.Items[0]
+	}
+}
+
+func CamelCatalog(ns, name string) func() *v1.CamelCatalog {
+	return func() *v1.CamelCatalog {
+		cat := v1.CamelCatalog{}
+		key := ctrl.ObjectKey{
+			Namespace: ns,
+			Name:      name,
+		}
+		if err := TestClient().Get(TestContext, key, &cat); err != nil && !k8serrors.IsNotFound(err) {
+			failTest(err)
+		} else if err != nil && k8serrors.IsNotFound(err) {
+			return nil
+		}
+		return &cat
+	}
+}
+
+func CreateCamelCatalog(catalog *v1.CamelCatalog) func() error {
+	return func() error {
+		return TestClient().Create(TestContext, catalog)
+	}
+}
+
+func DeleteCamelCatalog(ns, name string) func() bool {
+	return func() bool {
+		cat := CamelCatalog(ns, name)()
+		if cat == nil {
+			return true
+		}
+		if err := TestClient().Delete(TestContext, cat); err != nil {
+			log.Error(err, "Got error while deleting the catalog")
+		}
+		return true
+	}
+}
+
+func CamelCatalogPhase(ns, name string) func() v1.CamelCatalogPhase {
+	return func() v1.CamelCatalogPhase {
+		c := CamelCatalog(ns, name)()
+		if c == nil {
+			return ""
+		}
+		return c.Status.Phase
+	}
+}
+
+func CamelCatalogCondition(ns, name string, conditionType v1.CamelCatalogConditionType) func() *v1.CamelCatalogCondition {
+	return func() *v1.CamelCatalogCondition {
+		c := CamelCatalog(ns, name)()
+		if c == nil {
+			return nil
+		}
+		for _, condition := range c.Status.Conditions {
+			if condition.Type == conditionType {
+				return &condition
+			}
+		}
+		return nil
+	}
+}
+
+func CamelCatalogImage(ns, name string) func() string {
+	return func() string {
+		c := CamelCatalog(ns, name)()
+		if c == nil {
+			return ""
+		}
+		return c.Status.Image
+	}
+}
+
+func CamelCatalogList(ns string) func() []v1.CamelCatalog {
+	return func() []v1.CamelCatalog {
+		lst := v1.NewCamelCatalogList()
+		if err := TestClient().List(TestContext, &lst, ctrl.InNamespace(ns)); err != nil {
+			failTest(err)
+		}
+		return lst.Items
 	}
 }
 
@@ -1644,6 +1810,26 @@ func PlatformProfile(ns string) func() v1.TraitProfile {
 	}
 }
 
+func PlatformBuildCatalogToolTimeout(ns string) func() *metav1.Duration {
+	return func() *metav1.Duration {
+		p := Platform(ns)()
+		if p == nil {
+			return &metav1.Duration{}
+		}
+		return p.Status.Build.BuildCatalogToolTimeout
+	}
+}
+
+func PlatformTimeout(ns string) func() *metav1.Duration {
+	return func() *metav1.Duration {
+		p := Platform(ns)()
+		if p == nil {
+			return &metav1.Duration{}
+		}
+		return p.Status.Build.Timeout
+	}
+}
+
 func AssignPlatformToOperator(ns, operator string) error {
 	pl := Platform(ns)()
 	if pl == nil {
@@ -1676,7 +1862,8 @@ func CRDs() func() []metav1.APIResource {
 			reflect.TypeOf(v1.Integration{}).Name(),
 			reflect.TypeOf(v1.IntegrationKit{}).Name(),
 			reflect.TypeOf(v1.IntegrationPlatform{}).Name(),
-			reflect.TypeOf(v1alpha1.Kamelet{}).Name(),
+			reflect.TypeOf(v1.Kamelet{}).Name(),
+			reflect.TypeOf(v1.Pipe{}).Name(),
 			reflect.TypeOf(v1alpha1.KameletBinding{}).Name(),
 		}
 
@@ -1748,6 +1935,25 @@ func OperatorPod(ns string) func() *corev1.Pod {
 			return nil
 		}
 		return &lst.Items[0]
+	}
+}
+
+func OperatorPodPVCName(ns string) func() string {
+	return func() string {
+		operatorPod := OperatorPod(ns)()
+		if operatorPod.Spec.Volumes == nil {
+			return ""
+		}
+		volumes := OperatorPod(ns)().Spec.Volumes
+		if volumes == nil {
+			return ""
+		}
+		for _, v := range volumes {
+			if v.Name == defaults.DefaultPVC {
+				return defaults.DefaultPVC
+			}
+		}
+		return ""
 	}
 }
 
@@ -1888,9 +2094,9 @@ func ServiceAccount(ns, name string) func() *corev1.ServiceAccount {
 	}
 }
 
-func KameletList(ns string) func() []v1alpha1.Kamelet {
-	return func() []v1alpha1.Kamelet {
-		lst := v1alpha1.NewKameletList()
+func KameletList(ns string) func() []v1.Kamelet {
+	return func() []v1.Kamelet {
+		lst := v1.NewKameletList()
 		if err := TestClient().List(TestContext, &lst, ctrl.InNamespace(ns)); err != nil {
 			failTest(err)
 		}
@@ -1898,9 +2104,9 @@ func KameletList(ns string) func() []v1alpha1.Kamelet {
 	}
 }
 
-func Kamelet(name string, ns string) func() *v1alpha1.Kamelet {
-	return func() *v1alpha1.Kamelet {
-		it := v1alpha1.NewKamelet(ns, name)
+func Kamelet(name string, ns string) func() *v1.Kamelet {
+	return func() *v1.Kamelet {
+		it := v1.NewKamelet(ns, name)
 		key := ctrl.ObjectKey{
 			Namespace: ns,
 			Name:      name,
@@ -1914,7 +2120,7 @@ func Kamelet(name string, ns string) func() *v1alpha1.Kamelet {
 	}
 }
 
-func KameletLabels(kamelet *v1alpha1.Kamelet) map[string]string {
+func KameletLabels(kamelet *v1.Kamelet) map[string]string {
 	if kamelet == nil {
 		return map[string]string{}
 	}
@@ -2046,16 +2252,16 @@ func CreateKnativeBroker(ns string, name string) func() error {
 	Kamelets
 */
 
-func CreateKamelet(ns string, name string, template map[string]interface{}, properties map[string]v1alpha1.JSONSchemaProp, labels map[string]string) func() error {
+func CreateKamelet(ns string, name string, template map[string]interface{}, properties map[string]v1.JSONSchemaProp, labels map[string]string) func() error {
 	return func() error {
-		kamelet := v1alpha1.Kamelet{
+		kamelet := v1.Kamelet{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: ns,
 				Name:      name,
 				Labels:    labels,
 			},
-			Spec: v1alpha1.KameletSpec{
-				Definition: &v1alpha1.JSONSchemaProps{
+			Spec: v1.KameletSpec{
+				Definition: &v1.JSONSchemaProps{
 					Properties: properties,
 				},
 				Template: asTemplate(template),
@@ -2066,7 +2272,7 @@ func CreateKamelet(ns string, name string, template map[string]interface{}, prop
 }
 
 func CreateTimerKamelet(ns string, name string) func() error {
-	props := map[string]v1alpha1.JSONSchemaProp{
+	props := map[string]v1.JSONSchemaProp{
 		"message": {
 			Type: "string",
 		},
@@ -2103,14 +2309,14 @@ func BindKameletTo(ns, name string, annotations map[string]string, from, to core
 func BindKameletToWithErrorHandler(ns, name string, annotations map[string]string, from, to corev1.ObjectReference,
 	sourceProperties, sinkProperties map[string]string, errorHandler map[string]interface{}) func() error {
 	return func() error {
-		kb := v1alpha1.NewKameletBinding(ns, name)
+		kb := v1.NewPipe(ns, name)
 		kb.Annotations = annotations
-		kb.Spec = v1alpha1.KameletBindingSpec{
-			Source: v1alpha1.Endpoint{
+		kb.Spec = v1.PipeSpec{
+			Source: v1.Endpoint{
 				Ref:        &from,
 				Properties: asEndpointProperties(sourceProperties),
 			},
-			Sink: v1alpha1.Endpoint{
+			Sink: v1.Endpoint{
 				Ref:        &to,
 				Properties: asEndpointProperties(sinkProperties),
 			},
@@ -2125,40 +2331,40 @@ func BindKameletToWithErrorHandler(ns, name string, annotations map[string]strin
 
 // Deprecated:
 // Use KamelBind func instead
-func asTemplate(source map[string]interface{}) *v1alpha1.Template {
+func asTemplate(source map[string]interface{}) *v1.Template {
 	bytes, err := json.Marshal(source)
 	if err != nil {
 		failTest(err)
 	}
-	return &v1alpha1.Template{
+	return &v1.Template{
 		RawMessage: bytes,
 	}
 }
 
 // Deprecated:
 // Use KamelBind func instead
-func asErrorHandlerSpec(source map[string]interface{}) *v1alpha1.ErrorHandlerSpec {
+func asErrorHandlerSpec(source map[string]interface{}) *v1.ErrorHandlerSpec {
 	bytes, err := json.Marshal(source)
 	if err != nil {
 		failTest(err)
 	}
-	return &v1alpha1.ErrorHandlerSpec{
+	return &v1.ErrorHandlerSpec{
 		RawMessage: bytes,
 	}
 }
 
 // Deprecated:
 // Use KamelBind func instead
-func asEndpointProperties(props map[string]string) *v1alpha1.EndpointProperties {
+func asEndpointProperties(props map[string]string) *v1.EndpointProperties {
 	if props == nil {
-		return &v1alpha1.EndpointProperties{}
+		return &v1.EndpointProperties{}
 	}
 
 	bytes, err := json.Marshal(props)
 	if err != nil {
 		failTest(err)
 	}
-	return &v1alpha1.EndpointProperties{
+	return &v1.EndpointProperties{
 		RawMessage: bytes,
 	}
 }
@@ -2198,7 +2404,7 @@ func Pods(ns string) func() []corev1.Pod {
 
 func WithNewTestNamespace(t *testing.T, doRun func(string)) {
 	setTestLocus(t)
-	ns := newTestNamespace(false)
+	ns := NewTestNamespace(false)
 	defer deleteTestNamespace(t, ns)
 	defer userCleanup(t)
 
@@ -2220,7 +2426,7 @@ func WithGlobalOperatorNamespace(t *testing.T, test func(string)) {
 
 func WithNewTestNamespaceWithKnativeBroker(t *testing.T, doRun func(string)) {
 	setTestLocus(t)
-	ns := newTestNamespace(true)
+	ns := NewTestNamespace(true)
 	defer deleteTestNamespace(t, ns)
 	defer deleteKnativeBroker(ns)
 	defer userCleanup(t)
@@ -2248,11 +2454,7 @@ func invokeUserTestCode(t *testing.T, ns string, doRun func(string)) {
 	globalTest := os.Getenv("CAMEL_K_FORCE_GLOBAL_TEST") == "true"
 
 	defer func(isGlobal bool) {
-		if t.Failed() {
-			if err := util.Dump(TestContext, TestClient(), ns, t); err != nil {
-				t.Logf("Error while dumping namespace %s: %v\n", ns, err)
-			}
-		}
+		DumpNamespace(t, ns)
 
 		// Try to clean up namespace
 		if !isGlobal && HasPlatform(ns)() {
@@ -2363,7 +2565,26 @@ func testNamespaceExists(ns string) (bool, error) {
 	return true, nil
 }
 
-func newTestNamespace(injectKnativeBroker bool) ctrl.Object {
+func DumpNamespace(t *testing.T, ns string) {
+	if t.Failed() {
+		if err := util.Dump(TestContext, TestClient(), ns, t); err != nil {
+			t.Logf("Error while dumping namespace %s: %v\n", ns, err)
+		}
+	}
+}
+
+func DeleteNamespace(t *testing.T, ns string) error {
+	nsObj, err := TestClient().CoreV1().Namespaces().Get(TestContext, ns, metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	deleteTestNamespace(t, nsObj)
+
+	return nil
+}
+
+func NewTestNamespace(injectKnativeBroker bool) ctrl.Object {
 	brokerLabel := "eventing.knative.dev/injection"
 	name := os.Getenv("CAMEL_K_TEST_NS")
 	if name == "" {
@@ -2484,11 +2705,33 @@ func CreateLogKamelet(ns string, name string) func() error {
 		},
 	}
 
-	props := map[string]v1alpha1.JSONSchemaProp{
+	props := map[string]v1.JSONSchemaProp{
 		"loggerName": {
 			Type: "string",
 		},
 	}
 
 	return CreateKamelet(ns, name, flow, props, nil)
+}
+
+func GetCIProcessID() string {
+	id, err := os.ReadFile(ciPID)
+	if err != nil {
+		return ""
+	}
+	return string(id)
+}
+
+func SaveCIProcessID(id string) {
+	err := os.WriteFile(ciPID, []byte(id), 0644)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func DeleteCIProcessID() {
+	err := os.Remove(ciPID)
+	if err != nil {
+		panic(err)
+	}
 }

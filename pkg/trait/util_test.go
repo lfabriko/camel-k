@@ -23,9 +23,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/pointer"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	traitv1 "github.com/apache/camel-k/pkg/apis/camel/v1/trait"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	traitv1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -206,29 +205,29 @@ func TestToTrait(t *testing.T) {
 
 func TestSameTraits(t *testing.T) {
 	t.Run("empty traits", func(t *testing.T) {
-		oldKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		oldKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{},
 				},
 			},
 		}
-		newKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		newKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{},
 				},
 			},
 		}
 
-		ok, err := KameletBindingsHaveSameTraits(oldKlb, newKlb)
+		ok, err := PipesHaveSameTraits(oldKlb, newKlb)
 		assert.NoError(t, err)
 		assert.True(t, ok)
 	})
 
 	t.Run("same traits", func(t *testing.T) {
-		oldKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		oldKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{
 						Container: &traitv1.ContainerTrait{
@@ -238,8 +237,8 @@ func TestSameTraits(t *testing.T) {
 				},
 			},
 		}
-		newKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		newKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{
 						Container: &traitv1.ContainerTrait{
@@ -250,14 +249,14 @@ func TestSameTraits(t *testing.T) {
 			},
 		}
 
-		ok, err := KameletBindingsHaveSameTraits(oldKlb, newKlb)
+		ok, err := PipesHaveSameTraits(oldKlb, newKlb)
 		assert.NoError(t, err)
 		assert.True(t, ok)
 	})
 
 	t.Run("not same traits", func(t *testing.T) {
-		oldKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		oldKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{
 						Container: &traitv1.ContainerTrait{
@@ -267,8 +266,8 @@ func TestSameTraits(t *testing.T) {
 				},
 			},
 		}
-		newKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		newKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{
 						Owner: &traitv1.OwnerTrait{
@@ -279,14 +278,14 @@ func TestSameTraits(t *testing.T) {
 			},
 		}
 
-		ok, err := KameletBindingsHaveSameTraits(oldKlb, newKlb)
+		ok, err := PipesHaveSameTraits(oldKlb, newKlb)
 		assert.NoError(t, err)
 		assert.False(t, ok)
 	})
 
 	t.Run("same traits with annotations", func(t *testing.T) {
-		oldKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		oldKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{
 						Container: &traitv1.ContainerTrait{
@@ -296,7 +295,7 @@ func TestSameTraits(t *testing.T) {
 				},
 			},
 		}
-		newKlb := &v1alpha1.KameletBinding{
+		newKlb := &v1.Pipe{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					v1.TraitAnnotationPrefix + "container.image": "foo/bar:1",
@@ -304,20 +303,20 @@ func TestSameTraits(t *testing.T) {
 			},
 		}
 
-		ok, err := KameletBindingsHaveSameTraits(oldKlb, newKlb)
+		ok, err := PipesHaveSameTraits(oldKlb, newKlb)
 		assert.NoError(t, err)
 		assert.True(t, ok)
 	})
 
 	t.Run("same traits with annotations only", func(t *testing.T) {
-		oldKlb := &v1alpha1.KameletBinding{
+		oldKlb := &v1.Pipe{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					v1.TraitAnnotationPrefix + "container.image": "foo/bar:1",
 				},
 			},
 		}
-		newKlb := &v1alpha1.KameletBinding{
+		newKlb := &v1.Pipe{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					v1.TraitAnnotationPrefix + "container.image": "foo/bar:1",
@@ -325,14 +324,14 @@ func TestSameTraits(t *testing.T) {
 			},
 		}
 
-		ok, err := KameletBindingsHaveSameTraits(oldKlb, newKlb)
+		ok, err := PipesHaveSameTraits(oldKlb, newKlb)
 		assert.NoError(t, err)
 		assert.True(t, ok)
 	})
 
 	t.Run("not same traits with annotations", func(t *testing.T) {
-		oldKlb := &v1alpha1.KameletBinding{
-			Spec: v1alpha1.KameletBindingSpec{
+		oldKlb := &v1.Pipe{
+			Spec: v1.PipeSpec{
 				Integration: &v1.IntegrationSpec{
 					Traits: v1.Traits{
 						Container: &traitv1.ContainerTrait{
@@ -342,7 +341,7 @@ func TestSameTraits(t *testing.T) {
 				},
 			},
 		}
-		newKlb := &v1alpha1.KameletBinding{
+		newKlb := &v1.Pipe{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					v1.TraitAnnotationPrefix + "container.image": "foo/bar:2",
@@ -350,20 +349,20 @@ func TestSameTraits(t *testing.T) {
 			},
 		}
 
-		ok, err := KameletBindingsHaveSameTraits(oldKlb, newKlb)
+		ok, err := PipesHaveSameTraits(oldKlb, newKlb)
 		assert.NoError(t, err)
 		assert.False(t, ok)
 	})
 
 	t.Run("not same traits with annotations only", func(t *testing.T) {
-		oldKlb := &v1alpha1.KameletBinding{
+		oldKlb := &v1.Pipe{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					v1.TraitAnnotationPrefix + "container.image": "foo/bar:1",
 				},
 			},
 		}
-		newKlb := &v1alpha1.KameletBinding{
+		newKlb := &v1.Pipe{
 			ObjectMeta: metav1.ObjectMeta{
 				Annotations: map[string]string{
 					v1.TraitAnnotationPrefix + "container.image": "foo/bar:2",
@@ -371,7 +370,7 @@ func TestSameTraits(t *testing.T) {
 			},
 		}
 
-		ok, err := KameletBindingsHaveSameTraits(oldKlb, newKlb)
+		ok, err := PipesHaveSameTraits(oldKlb, newKlb)
 		assert.NoError(t, err)
 		assert.False(t, ok)
 	})

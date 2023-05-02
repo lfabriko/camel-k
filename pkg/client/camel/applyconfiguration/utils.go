@@ -20,10 +20,10 @@ limitations under the License.
 package applyconfiguration
 
 import (
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	v1alpha1 "github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	camelv1 "github.com/apache/camel-k/pkg/client/camel/applyconfiguration/camel/v1"
-	camelv1alpha1 "github.com/apache/camel-k/pkg/client/camel/applyconfiguration/camel/v1alpha1"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	v1alpha1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
+	camelv1 "github.com/apache/camel-k/v2/pkg/client/camel/applyconfiguration/camel/v1"
+	camelv1alpha1 "github.com/apache/camel-k/v2/pkg/client/camel/applyconfiguration/camel/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 )
 
@@ -58,8 +58,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &camelv1.CamelArtifactExclusionApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CamelCatalog"):
 		return &camelv1.CamelCatalogApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("CamelCatalogCondition"):
+		return &camelv1.CamelCatalogConditionApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CamelCatalogSpec"):
 		return &camelv1.CamelCatalogSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("CamelCatalogStatus"):
+		return &camelv1.CamelCatalogStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CamelLoader"):
 		return &camelv1.CamelLoaderApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("CamelScheme"):
@@ -72,12 +76,30 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &camelv1.ConfigurationSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("DataSpec"):
 		return &camelv1.DataSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("DataTypeReference"):
+		return &camelv1.DataTypeReferenceApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("DataTypeSpec"):
+		return &camelv1.DataTypeSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("DataTypesSpec"):
+		return &camelv1.DataTypesSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("Endpoint"):
+		return &camelv1.EndpointApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("EndpointProperties"):
+		return &camelv1.EndpointPropertiesApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("ErrorHandlerSpec"):
+		return &camelv1.ErrorHandlerSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("EventTypeSpec"):
+		return &camelv1.EventTypeSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("ExternalDocumentation"):
+		return &camelv1.ExternalDocumentationApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("Failure"):
 		return &camelv1.FailureApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("FailureRecovery"):
 		return &camelv1.FailureRecoveryApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("Flow"):
 		return &camelv1.FlowApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("HeaderSpec"):
+		return &camelv1.HeaderSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("HealthCheckResponse"):
 		return &camelv1.HealthCheckResponseApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("Integration"):
@@ -112,6 +134,22 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &camelv1.IntegrationSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("IntegrationStatus"):
 		return &camelv1.IntegrationStatusApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("JSON"):
+		return &camelv1.JSONApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("JSONSchemaProp"):
+		return &camelv1.JSONSchemaPropApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("JSONSchemaProps"):
+		return &camelv1.JSONSchemaPropsApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("Kamelet"):
+		return &camelv1.KameletApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("KameletCondition"):
+		return &camelv1.KameletConditionApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("KameletProperty"):
+		return &camelv1.KameletPropertyApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("KameletSpec"):
+		return &camelv1.KameletSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("KameletStatus"):
+		return &camelv1.KameletStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KanikoTask"):
 		return &camelv1.KanikoTaskApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("KanikoTaskCache"):
@@ -122,6 +160,14 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &camelv1.MavenBuildSpecApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("MavenSpec"):
 		return &camelv1.MavenSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("Pipe"):
+		return &camelv1.PipeApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("PipeCondition"):
+		return &camelv1.PipeConditionApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("PipeSpec"):
+		return &camelv1.PipeSpecApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("PipeStatus"):
+		return &camelv1.PipeStatusApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("PodCondition"):
 		return &camelv1.PodConditionApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("PodSpec"):
@@ -148,6 +194,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &camelv1.SpectrumTaskApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("Task"):
 		return &camelv1.TaskApplyConfiguration{}
+	case v1.SchemeGroupVersion.WithKind("Template"):
+		return &camelv1.TemplateApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("TraitConfiguration"):
 		return &camelv1.TraitConfigurationApplyConfiguration{}
 	case v1.SchemeGroupVersion.WithKind("Traits"):
@@ -158,6 +206,12 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &camelv1.ValueSourceApplyConfiguration{}
 
 		// Group=camel.apache.org, Version=v1alpha1
+	case v1alpha1.SchemeGroupVersion.WithKind("DataTypeReference"):
+		return &camelv1alpha1.DataTypeReferenceApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("DataTypeSpec"):
+		return &camelv1alpha1.DataTypeSpecApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("DataTypesSpec"):
+		return &camelv1alpha1.DataTypesSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("Endpoint"):
 		return &camelv1alpha1.EndpointApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("EndpointProperties"):
@@ -168,6 +222,8 @@ func ForKind(kind schema.GroupVersionKind) interface{} {
 		return &camelv1alpha1.EventTypeSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("ExternalDocumentation"):
 		return &camelv1alpha1.ExternalDocumentationApplyConfiguration{}
+	case v1alpha1.SchemeGroupVersion.WithKind("HeaderSpec"):
+		return &camelv1alpha1.HeaderSpecApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("JSON"):
 		return &camelv1alpha1.JSONApplyConfiguration{}
 	case v1alpha1.SchemeGroupVersion.WithKind("JSONSchemaProp"):

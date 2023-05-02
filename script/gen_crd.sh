@@ -69,3 +69,4 @@ deploy_crd integration-kit integrationkits
 deploy_crd integration-platform integrationplatforms
 deploy_crd kamelet kamelets
 deploy_crd kamelet-binding kameletbindings
+deploy_crd pipe pipes

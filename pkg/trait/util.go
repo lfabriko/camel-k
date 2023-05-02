@@ -33,14 +33,27 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/metadata"
-	"github.com/apache/camel-k/pkg/util"
-	"github.com/apache/camel-k/pkg/util/camel"
-	"github.com/apache/camel-k/pkg/util/property"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/metadata"
+	"github.com/apache/camel-k/v2/pkg/util"
+	"github.com/apache/camel-k/v2/pkg/util/camel"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/property"
+	"github.com/apache/camel-k/v2/pkg/util/uri"
 )
+
+func ptrFrom[T any](value T) *T {
+	return &value
+}
+
+func ptrDerefOr[T any](value *T, def T) T {
+	if value != nil {
+		return *value
+	}
+	return def
+}
 
 type Options map[string]map[string]interface{}
 
@@ -60,7 +73,7 @@ func (u Options) Get(id string) (map[string]interface{}, bool) {
 	return nil, false
 }
 
-var exactVersionRegexp = regexp.MustCompile(`^(\d+)\.(\d+)\.([\w-.]+)$`)
+var exactVersionRegexp = regexp.MustCompile(`^(\d+)\.(\d+)\.(\d+)([\w-.]*)$`)
 
 // getIntegrationKit retrieves the kit set on the integration.
 func getIntegrationKit(ctx context.Context, c client.Client, integration *v1.Integration) (*v1.IntegrationKit, error) {
@@ -361,7 +374,22 @@ func IntegrationKitsHaveSameTraits(i1 *v1.IntegrationKit, i2 *v1.IntegrationKit)
 	return Equals(c1, c2), nil
 }
 
+// PipesHaveSameTraits return if traits are the same.
+func PipesHaveSameTraits(i1 *v1.Pipe, i2 *v1.Pipe) (bool, error) {
+	c1, err := NewTraitsOptionsForPipe(i1)
+	if err != nil {
+		return false, err
+	}
+	c2, err := NewTraitsOptionsForPipe(i2)
+	if err != nil {
+		return false, err
+	}
+
+	return Equals(c1, c2), nil
+}
+
 // KameletBindingsHaveSameTraits return if traits are the same.
+// Deprecated.
 func KameletBindingsHaveSameTraits(i1 *v1alpha1.KameletBinding, i2 *v1alpha1.KameletBinding) (bool, error) {
 	c1, err := NewTraitsOptionsForKameletBinding(i1)
 	if err != nil {
@@ -375,10 +403,34 @@ func KameletBindingsHaveSameTraits(i1 *v1alpha1.KameletBinding, i2 *v1alpha1.Kam
 	return Equals(c1, c2), nil
 }
 
-// IntegrationAndBindingSameTraits return if traits are the same.
+// IntegrationAndPipeSameTraits return if traits are the same.
 // The comparison is done for the subset of traits defines on the binding as during the trait processing,
 // some traits may be added to the Integration i.e. knative configuration in case of sink binding.
-func IntegrationAndBindingSameTraits(i1 *v1.Integration, i2 *v1alpha1.KameletBinding) (bool, error) {
+func IntegrationAndPipeSameTraits(i1 *v1.Integration, i2 *v1.Pipe) (bool, error) {
+	itOpts, err := NewTraitsOptionsForIntegration(i1)
+	if err != nil {
+		return false, err
+	}
+	klbOpts, err := NewTraitsOptionsForPipe(i2)
+	if err != nil {
+		return false, err
+	}
+
+	toCompare := make(Options)
+	for k := range klbOpts {
+		if v, ok := itOpts[k]; ok {
+			toCompare[k] = v
+		}
+	}
+
+	return Equals(klbOpts, toCompare), nil
+}
+
+// IntegrationAndKameletBindingSameTraits return if traits are the same.
+// The comparison is done for the subset of traits defines on the binding as during the trait processing,
+// some traits may be added to the Integration i.e. knative configuration in case of sink binding.
+// Deprecated.
+func IntegrationAndKameletBindingSameTraits(i1 *v1.Integration, i2 *v1alpha1.KameletBinding) (bool, error) {
 	itOpts, err := NewTraitsOptionsForIntegration(i1)
 	if err != nil {
 		return false, err
@@ -466,6 +518,34 @@ func NewTraitsOptionsForIntegrationPlatform(i *v1.IntegrationPlatform) (Options,
 	return m1, nil
 }
 
+func NewTraitsOptionsForPipe(i *v1.Pipe) (Options, error) {
+	if i.Spec.Integration != nil {
+		m1, err := ToTraitMap(i.Spec.Integration.Traits)
+		if err != nil {
+			return nil, err
+		}
+
+		m2, err := FromAnnotations(&i.ObjectMeta)
+		if err != nil {
+			return nil, err
+		}
+
+		for k, v := range m2 {
+			m1[k] = v
+		}
+
+		return m1, nil
+	}
+
+	m1, err := FromAnnotations(&i.ObjectMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	return m1, nil
+}
+
+// Deprecated.
 func NewTraitsOptionsForKameletBinding(i *v1alpha1.KameletBinding) (Options, error) {
 	if i.Spec.Integration != nil {
 		m1, err := ToTraitMap(i.Spec.Integration.Traits)
@@ -529,4 +609,29 @@ func FromAnnotations(meta *metav1.ObjectMeta) (Options, error) {
 	}
 
 	return options, nil
+}
+
+// verify if the integration in the Environment contains an endpoint.
+func containsEndpoint(name string, e *Environment, c client.Client) (bool, error) {
+	sources, err := kubernetes.ResolveIntegrationSources(e.Ctx, c, e.Integration, e.Resources)
+	if err != nil {
+		return false, err
+	}
+
+	meta, err := metadata.ExtractAll(e.CamelCatalog, sources)
+	if err != nil {
+		return false, err
+	}
+
+	hasKnativeEndpoint := false
+	endpoints := make([]string, 0)
+	endpoints = append(endpoints, meta.FromURIs...)
+	endpoints = append(endpoints, meta.ToURIs...)
+	for _, endpoint := range endpoints {
+		if uri.GetComponent(endpoint) == name {
+			hasKnativeEndpoint = true
+			break
+		}
+	}
+	return hasKnativeEndpoint, nil
 }

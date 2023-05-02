@@ -20,9 +20,9 @@ package cmd
 import (
 	"testing"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/platform"
-	"github.com/apache/camel-k/pkg/util/test"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/platform"
+	"github.com/apache/camel-k/v2/pkg/util/test"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 )
@@ -57,7 +57,7 @@ func TestBindOutputJSON(t *testing.T) {
 	assert.Equal(t, "json", buildCmdOptions.OutputFormat)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `{"kind":"KameletBinding","apiVersion":"camel.apache.org/v1alpha1","metadata":{"name":"my-to-my","creationTimestamp":null,"annotations":{"camel.apache.org/operator.id":"camel-k"}},"spec":{"source":{"uri":"my:src"},"sink":{"uri":"my:dst"}},"status":{}}`, output)
+	assert.Equal(t, `{"kind":"Pipe","apiVersion":"camel.apache.org/v1","metadata":{"name":"my-to-my","creationTimestamp":null,"annotations":{"camel.apache.org/operator.id":"camel-k"}},"spec":{"source":{"uri":"my:src"},"sink":{"uri":"my:dst"}},"status":{}}`, output)
 }
 
 func TestBindOutputYAML(t *testing.T) {
@@ -66,8 +66,8 @@ func TestBindOutputYAML(t *testing.T) {
 	assert.Equal(t, "yaml", buildCmdOptions.OutputFormat)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `apiVersion: camel.apache.org/v1alpha1
-kind: KameletBinding
+	assert.Equal(t, `apiVersion: camel.apache.org/v1
+kind: Pipe
 metadata:
   annotations:
     camel.apache.org/operator.id: camel-k
@@ -97,8 +97,8 @@ func TestBindErrorHandlerDLCKamelet(t *testing.T) {
 	assert.Equal(t, "yaml", buildCmdOptions.OutputFormat)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `apiVersion: camel.apache.org/v1alpha1
-kind: KameletBinding
+	assert.Equal(t, `apiVersion: camel.apache.org/v1
+kind: Pipe
 metadata:
   annotations:
     camel.apache.org/operator.id: camel-k
@@ -111,7 +111,7 @@ spec:
         properties:
           my-prop: value
         ref:
-          apiVersion: camel.apache.org/v1alpha1
+          apiVersion: camel.apache.org/v1
           kind: Kamelet
           name: my-kamelet
   sink:
@@ -129,8 +129,8 @@ func TestBindErrorHandlerNone(t *testing.T) {
 	assert.Equal(t, "yaml", buildCmdOptions.OutputFormat)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `apiVersion: camel.apache.org/v1alpha1
-kind: KameletBinding
+	assert.Equal(t, `apiVersion: camel.apache.org/v1
+kind: Pipe
 metadata:
   annotations:
     camel.apache.org/operator.id: camel-k
@@ -154,8 +154,8 @@ func TestBindErrorHandlerLog(t *testing.T) {
 	assert.Equal(t, "yaml", buildCmdOptions.OutputFormat)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `apiVersion: camel.apache.org/v1alpha1
-kind: KameletBinding
+	assert.Equal(t, `apiVersion: camel.apache.org/v1
+kind: Pipe
 metadata:
   annotations:
     camel.apache.org/operator.id: camel-k
@@ -178,8 +178,8 @@ func TestBindTraits(t *testing.T) {
 	assert.Equal(t, "yaml", buildCmdOptions.OutputFormat)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `apiVersion: camel.apache.org/v1alpha1
-kind: KameletBinding
+	assert.Equal(t, `apiVersion: camel.apache.org/v1
+kind: Pipe
 metadata:
   annotations:
     camel.apache.org/operator.id: camel-k
@@ -211,8 +211,8 @@ func TestBindSteps(t *testing.T) {
 	assert.Equal(t, "yaml", buildCmdOptions.OutputFormat)
 
 	assert.Nil(t, err)
-	assert.Equal(t, `apiVersion: camel.apache.org/v1alpha1
-kind: KameletBinding
+	assert.Equal(t, `apiVersion: camel.apache.org/v1
+kind: Pipe
 metadata:
   annotations:
     camel.apache.org/operator.id: camel-k

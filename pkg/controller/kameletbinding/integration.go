@@ -27,41 +27,41 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/platform"
-	"github.com/apache/camel-k/pkg/util"
-	"github.com/apache/camel-k/pkg/util/bindings"
-	"github.com/apache/camel-k/pkg/util/knative"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/property"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/platform"
+	"github.com/apache/camel-k/v2/pkg/util"
+	"github.com/apache/camel-k/v2/pkg/util/bindings"
+	"github.com/apache/camel-k/v2/pkg/util/knative"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/property"
 )
 
 var (
-	endpointTypeSourceContext = bindings.EndpointContext{Type: v1alpha1.EndpointTypeSource}
-	endpointTypeSinkContext   = bindings.EndpointContext{Type: v1alpha1.EndpointTypeSink}
+	endpointTypeSourceContext = bindings.V1alpha1EndpointContext{Type: v1alpha1.EndpointTypeSource}
+	endpointTypeSinkContext   = bindings.V1alpha1EndpointContext{Type: v1alpha1.EndpointTypeSink}
 )
 
-func CreateIntegrationFor(ctx context.Context, c client.Client, kameletbinding *v1alpha1.KameletBinding) (*v1.Integration, error) {
+func CreateIntegrationFor(ctx context.Context, c client.Client, binding *v1alpha1.KameletBinding) (*v1.Integration, error) {
 	controller := true
 	blockOwnerDeletion := true
-	annotations := util.CopyMap(kameletbinding.Annotations)
+	annotations := util.CopyMap(binding.Annotations)
 	// avoid propagating the icon to the integration as it's heavyweight and not needed
 	delete(annotations, v1alpha1.AnnotationIcon)
 
 	it := v1.Integration{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace:   kameletbinding.Namespace,
-			Name:        kameletbinding.Name,
+			Namespace:   binding.Namespace,
+			Name:        binding.Name,
 			Annotations: annotations,
-			Labels:      util.CopyMap(kameletbinding.Labels),
+			Labels:      util.CopyMap(binding.Labels),
 			OwnerReferences: []metav1.OwnerReference{
 				{
-					APIVersion:         kameletbinding.APIVersion,
-					Kind:               kameletbinding.Kind,
-					Name:               kameletbinding.Name,
-					UID:                kameletbinding.UID,
+					APIVersion:         binding.APIVersion,
+					Kind:               binding.Kind,
+					Name:               binding.Name,
+					UID:                binding.UID,
 					Controller:         &controller,
 					BlockOwnerDeletion: &blockOwnerDeletion,
 				},
@@ -73,62 +73,62 @@ func CreateIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 	if it.GetLabels() == nil {
 		it.SetLabels(make(map[string]string))
 	}
-	it.GetLabels()[kubernetes.CamelCreatorLabelKind] = kameletbinding.Kind
-	it.GetLabels()[kubernetes.CamelCreatorLabelName] = kameletbinding.Name
+	it.GetLabels()[kubernetes.CamelCreatorLabelKind] = binding.Kind
+	it.GetLabels()[kubernetes.CamelCreatorLabelName] = binding.Name
 
 	// start from the integration spec defined in the binding
-	if kameletbinding.Spec.Integration != nil {
-		it.Spec = *kameletbinding.Spec.Integration.DeepCopy()
+	if binding.Spec.Integration != nil {
+		it.Spec = *binding.Spec.Integration.DeepCopy()
 	}
 
 	// Set replicas (or override podspecable value) if present
-	if kameletbinding.Spec.Replicas != nil {
-		replicas := *kameletbinding.Spec.Replicas
+	if binding.Spec.Replicas != nil {
+		replicas := *binding.Spec.Replicas
 		it.Spec.Replicas = &replicas
 	}
 
-	profile, err := determineProfile(ctx, c, kameletbinding)
+	profile, err := determineProfile(ctx, c, binding)
 	if err != nil {
 		return nil, err
 	}
 	it.Spec.Profile = profile
 
-	if kameletbinding.Spec.ServiceAccountName != "" {
-		it.Spec.ServiceAccountName = kameletbinding.Spec.ServiceAccountName
+	if binding.Spec.ServiceAccountName != "" {
+		it.Spec.ServiceAccountName = binding.Spec.ServiceAccountName
 	}
 
-	bindingContext := bindings.BindingContext{
+	bindingContext := bindings.V1alpha1BindingContext{
 		Ctx:       ctx,
 		Client:    c,
 		Namespace: it.Namespace,
 		Profile:   profile,
 	}
 
-	from, err := bindings.Translate(bindingContext, endpointTypeSourceContext, kameletbinding.Spec.Source)
+	from, err := bindings.TranslateV1alpha1(bindingContext, endpointTypeSourceContext, binding.Spec.Source)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not determine source URI")
 	}
-	to, err := bindings.Translate(bindingContext, endpointTypeSinkContext, kameletbinding.Spec.Sink)
+	to, err := bindings.TranslateV1alpha1(bindingContext, endpointTypeSinkContext, binding.Spec.Sink)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not determine sink URI")
 	}
 	// error handler is optional
-	errorHandler, err := maybeErrorHandler(kameletbinding.Spec.ErrorHandler, bindingContext)
+	errorHandler, err := maybeErrorHandler(binding.Spec.ErrorHandler, bindingContext)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not determine error handler")
 	}
 
-	steps := make([]*bindings.Binding, 0, len(kameletbinding.Spec.Steps))
-	for idx, step := range kameletbinding.Spec.Steps {
+	steps := make([]*bindings.Binding, 0, len(binding.Spec.Steps))
+	for idx, step := range binding.Spec.Steps {
 		position := idx
-		stepBinding, err := bindings.Translate(bindingContext, bindings.EndpointContext{
+		stepKameletBinding, err := bindings.TranslateV1alpha1(bindingContext, bindings.V1alpha1EndpointContext{
 			Type:     v1alpha1.EndpointTypeAction,
 			Position: &position,
 		}, step)
 		if err != nil {
 			return nil, errors.Wrapf(err, "could not determine URI for step %d", idx)
 		}
-		steps = append(steps, stepBinding)
+		steps = append(steps, stepKameletBinding)
 	}
 
 	if to.Step == nil && to.URI == "" {
@@ -143,19 +143,19 @@ func CreateIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 		}
 	}
 
-	if err := configureBinding(&it, from); err != nil {
+	if err := configureKameletBinding(&it, from); err != nil {
 		return nil, err
 	}
 
-	if err := configureBinding(&it, steps...); err != nil {
+	if err := configureKameletBinding(&it, steps...); err != nil {
 		return nil, err
 	}
 
-	if err := configureBinding(&it, to); err != nil {
+	if err := configureKameletBinding(&it, to); err != nil {
 		return nil, err
 	}
 
-	if err := configureBinding(&it, errorHandler); err != nil {
+	if err := configureKameletBinding(&it, errorHandler); err != nil {
 		return nil, err
 	}
 
@@ -172,25 +172,21 @@ func CreateIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 	}
 
 	dslSteps := make([]map[string]interface{}, 0)
+
+	if from.Step != nil {
+		dslSteps = append(dslSteps, from.AsYamlDSL())
+	}
+
 	for _, step := range steps {
-		s := step.Step
-		if s == nil {
-			s = map[string]interface{}{
-				"to": step.URI,
-			}
-		}
-
-		dslSteps = append(dslSteps, s)
+		dslSteps = append(dslSteps, step.AsYamlDSL())
 	}
 
-	s := to.Step
-	if s == nil {
-		s = map[string]interface{}{
-			"to": to.URI,
-		}
+	if to.Step != nil {
+		dslSteps = append(dslSteps, to.AsYamlDSL())
 	}
-
-	dslSteps = append(dslSteps, s)
+	dslSteps = append(dslSteps, map[string]interface{}{
+		"to": to.URI,
+	})
 
 	fromWrapper := map[string]interface{}{
 		"uri":   from.URI,
@@ -212,7 +208,7 @@ func CreateIntegrationFor(ctx context.Context, c client.Client, kameletbinding *
 	return &it, nil
 }
 
-func configureBinding(integration *v1.Integration, bindings ...*bindings.Binding) error {
+func configureKameletBinding(integration *v1.Integration, bindings ...*bindings.Binding) error {
 	for _, b := range bindings {
 		if b == nil {
 			continue

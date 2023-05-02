@@ -20,7 +20,7 @@ limitations under the License.
 package fake
 
 import (
-	v1 "github.com/apache/camel-k/pkg/client/camel/clientset/versioned/typed/camel/v1"
+	v1 "github.com/apache/camel-k/v2/pkg/client/camel/clientset/versioned/typed/camel/v1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )
@@ -47,6 +47,14 @@ func (c *FakeCamelV1) IntegrationKits(namespace string) v1.IntegrationKitInterfa
 
 func (c *FakeCamelV1) IntegrationPlatforms(namespace string) v1.IntegrationPlatformInterface {
 	return &FakeIntegrationPlatforms{c, namespace}
+}
+
+func (c *FakeCamelV1) Kamelets(namespace string) v1.KameletInterface {
+	return &FakeKamelets{c, namespace}
+}
+
+func (c *FakeCamelV1) Pipes(namespace string) v1.PipeInterface {
+	return &FakePipes{c, namespace}
 }
 
 // RESTClient returns a RESTClient that is used to communicate

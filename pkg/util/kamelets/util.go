@@ -21,14 +21,14 @@ import (
 	"context"
 	"strings"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/client"
-	"github.com/apache/camel-k/pkg/metadata"
-	"github.com/apache/camel-k/pkg/util"
-	"github.com/apache/camel-k/pkg/util/camel"
-	"github.com/apache/camel-k/pkg/util/kubernetes"
-	"github.com/apache/camel-k/pkg/util/source"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+
+	"github.com/apache/camel-k/v2/pkg/client"
+	"github.com/apache/camel-k/v2/pkg/metadata"
+	"github.com/apache/camel-k/v2/pkg/util"
+	"github.com/apache/camel-k/v2/pkg/util/camel"
+	"github.com/apache/camel-k/v2/pkg/util/kubernetes"
+	"github.com/apache/camel-k/v2/pkg/util/source"
 )
 
 // ExtractKameletFromSources provide a list of Kamelets referred into the Integration sources.
@@ -48,7 +48,7 @@ func ExtractKameletFromSources(context context.Context, c client.Client, catalog
 	}
 
 	// Check if a Kamelet is configured as default error handler URI
-	defaultErrorHandlerURI := it.Spec.GetConfigurationProperty(v1alpha1.ErrorHandlerAppPropertiesPrefix + ".deadLetterUri")
+	defaultErrorHandlerURI := it.Spec.GetConfigurationProperty(v1.ErrorHandlerAppPropertiesPrefix + ".deadLetterUri")
 	if defaultErrorHandlerURI != "" {
 		if strings.HasPrefix(defaultErrorHandlerURI, "kamelet:") {
 			kamelets = append(kamelets, source.ExtractKamelet(defaultErrorHandlerURI))

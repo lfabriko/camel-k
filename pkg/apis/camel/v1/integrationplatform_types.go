@@ -120,12 +120,16 @@ type IntegrationPlatformBuildSpec struct {
 	BaseImage string `json:"baseImage,omitempty"`
 	// the image registry used to push/pull Integration images
 	Registry RegistrySpec `json:"registry,omitempty"`
+	// the timeout (in seconds) to use when creating the build tools container image
+	BuildCatalogToolTimeout *metav1.Duration `json:"buildCatalogToolTimeout,omitempty"`
 	// how much time to wait before time out the build process
 	Timeout *metav1.Duration `json:"timeout,omitempty"`
 	// Maven configuration used to build the Camel/Camel-Quarkus applications
 	Maven MavenSpec `json:"maven,omitempty"`
 	// Generic options that can used by each publish strategy
 	PublishStrategyOptions map[string]string `json:"PublishStrategyOptions,omitempty"`
+	// the maximum amount of parallel running builds started by this operator instance
+	MaxRunningBuilds int32 `json:"maxRunningBuilds,omitempty"`
 }
 
 // IntegrationPlatformKameletSpec define the behavior for all the Kamelets controller by the IntegrationPlatform

@@ -15,12 +15,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package v1alpha1 is deprecated: use the v1 API instead
+// Deprecated
 package v1alpha1
 
 import (
 	"sort"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -159,10 +161,10 @@ func (k *Kamelet) SortedDefinitionPropertiesKeys() []string {
 }
 
 // SortedTypesKeys returns the sorted keys of the Kamelet spec types
-func (k *Kamelet) SortedTypesKeys() []EventSlot {
-	types := k.Spec.Types
+func (k *Kamelet) SortedTypesKeys() []TypeSlot {
+	types := k.Spec.DataTypes
 	if len(types) == 0 {
-		return []EventSlot{}
+		return []TypeSlot{}
 	}
 	strs := make([]string, len(types))
 	i := 0
@@ -171,9 +173,9 @@ func (k *Kamelet) SortedTypesKeys() []EventSlot {
 		i++
 	}
 	sort.Strings(strs)
-	res := make([]EventSlot, len(types))
+	res := make([]TypeSlot, len(types))
 	for i, s := range strs {
-		res[i] = EventSlot(s)
+		res[i] = TypeSlot(s)
 	}
 	return res
 }

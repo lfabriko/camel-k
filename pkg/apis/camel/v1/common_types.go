@@ -21,7 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/apache/camel-k/pkg/apis/camel/v1/trait"
+	"github.com/apache/camel-k/v2/pkg/apis/camel/v1/trait"
 )
 
 const (
@@ -223,7 +223,7 @@ type TraitConfiguration struct {
 // RawMessage is a raw encoded JSON value.
 // It implements Marshaler and Unmarshaler and can
 // be used to delay JSON decoding or precompute a JSON encoding.
-// +kubebuilder:validation:Type=object
+// +kubebuilder:validation:Type=""
 // +kubebuilder:validation:Format=""
 // +kubebuilder:pruning:PreserveUnknownFields
 type RawMessage []byte
@@ -426,6 +426,8 @@ const (
 	LanguageYaml Language = "yaml"
 	// LanguageKamelet used for Kamelets
 	LanguageKamelet Language = "kamelet"
+	// LanguageJavaShell used for Java Shell
+	LanguageJavaShell Language = "jsh"
 )
 
 // Languages is the list of all supported languages
@@ -437,4 +439,5 @@ var Languages = []Language{
 	LanguageKotlin,
 	LanguageYaml,
 	LanguageKamelet,
+	LanguageJavaShell,
 }

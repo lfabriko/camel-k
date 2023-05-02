@@ -57,6 +57,10 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&CamelCatalogList{},
 		&Build{},
 		&BuildList{},
+		&Kamelet{},
+		&KameletList{},
+		&Pipe{},
+		&PipeList{},
 	)
 	metav1.AddToGroupVersion(scheme, SchemeGroupVersion)
 	return nil

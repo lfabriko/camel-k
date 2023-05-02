@@ -20,22 +20,24 @@ limitations under the License.
 package v1
 
 import (
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // IntegrationPlatformBuildSpecApplyConfiguration represents an declarative configuration of the IntegrationPlatformBuildSpec type for use
 // with apply.
 type IntegrationPlatformBuildSpecApplyConfiguration struct {
-	BuildStrategy          *v1.BuildStrategy                           `json:"buildStrategy,omitempty"`
-	PublishStrategy        *v1.IntegrationPlatformBuildPublishStrategy `json:"publishStrategy,omitempty"`
-	RuntimeVersion         *string                                     `json:"runtimeVersion,omitempty"`
-	RuntimeProvider        *v1.RuntimeProvider                         `json:"runtimeProvider,omitempty"`
-	BaseImage              *string                                     `json:"baseImage,omitempty"`
-	Registry               *RegistrySpecApplyConfiguration             `json:"registry,omitempty"`
-	Timeout                *metav1.Duration                            `json:"timeout,omitempty"`
-	Maven                  *MavenSpecApplyConfiguration                `json:"maven,omitempty"`
-	PublishStrategyOptions map[string]string                           `json:"PublishStrategyOptions,omitempty"`
+	BuildStrategy           *v1.BuildStrategy                           `json:"buildStrategy,omitempty"`
+	PublishStrategy         *v1.IntegrationPlatformBuildPublishStrategy `json:"publishStrategy,omitempty"`
+	RuntimeVersion          *string                                     `json:"runtimeVersion,omitempty"`
+	RuntimeProvider         *v1.RuntimeProvider                         `json:"runtimeProvider,omitempty"`
+	BaseImage               *string                                     `json:"baseImage,omitempty"`
+	Registry                *RegistrySpecApplyConfiguration             `json:"registry,omitempty"`
+	BuildCatalogToolTimeout *metav1.Duration                            `json:"buildCatalogToolTimeout,omitempty"`
+	Timeout                 *metav1.Duration                            `json:"timeout,omitempty"`
+	Maven                   *MavenSpecApplyConfiguration                `json:"maven,omitempty"`
+	PublishStrategyOptions  map[string]string                           `json:"PublishStrategyOptions,omitempty"`
+	MaxRunningBuilds        *int32                                      `json:"maxRunningBuilds,omitempty"`
 }
 
 // IntegrationPlatformBuildSpecApplyConfiguration constructs an declarative configuration of the IntegrationPlatformBuildSpec type for use with
@@ -92,6 +94,14 @@ func (b *IntegrationPlatformBuildSpecApplyConfiguration) WithRegistry(value *Reg
 	return b
 }
 
+// WithBuildCatalogToolTimeout sets the BuildCatalogToolTimeout field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the BuildCatalogToolTimeout field is set to the value of the last call.
+func (b *IntegrationPlatformBuildSpecApplyConfiguration) WithBuildCatalogToolTimeout(value metav1.Duration) *IntegrationPlatformBuildSpecApplyConfiguration {
+	b.BuildCatalogToolTimeout = &value
+	return b
+}
+
 // WithTimeout sets the Timeout field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Timeout field is set to the value of the last call.
@@ -119,5 +129,13 @@ func (b *IntegrationPlatformBuildSpecApplyConfiguration) WithPublishStrategyOpti
 	for k, v := range entries {
 		b.PublishStrategyOptions[k] = v
 	}
+	return b
+}
+
+// WithMaxRunningBuilds sets the MaxRunningBuilds field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the MaxRunningBuilds field is set to the value of the last call.
+func (b *IntegrationPlatformBuildSpecApplyConfiguration) WithMaxRunningBuilds(value int32) *IntegrationPlatformBuildSpecApplyConfiguration {
+	b.MaxRunningBuilds = &value
 	return b
 }

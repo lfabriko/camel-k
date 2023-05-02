@@ -32,16 +32,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
-	"github.com/apache/camel-k/pkg/client"
-	camelevent "github.com/apache/camel-k/pkg/event"
-	"github.com/apache/camel-k/pkg/platform"
-	"github.com/apache/camel-k/pkg/util/monitoring"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+	"github.com/apache/camel-k/v2/pkg/client"
+	camelevent "github.com/apache/camel-k/v2/pkg/event"
+	"github.com/apache/camel-k/v2/pkg/platform"
+	"github.com/apache/camel-k/v2/pkg/util/monitoring"
 )
 
 // Add creates a new Build Controller and adds it to the Manager. The Manager will set fields on the Controller
 // and Start it when the Manager is Started.
-func Add(mgr manager.Manager, c client.Client) error {
+func Add(ctx context.Context, mgr manager.Manager, c client.Client) error {
 	return add(mgr, newReconciler(mgr, c))
 }
 
@@ -142,11 +142,15 @@ func (r *reconcileBuild) Reconcile(ctx context.Context, request reconcile.Reques
 
 	var actions []Action
 
+	buildMonitor := Monitor{
+		maxRunningBuilds: instance.Spec.MaxRunningBuilds,
+	}
+
 	switch instance.Spec.Strategy {
 	case v1.BuildStrategyPod:
 		actions = []Action{
 			newInitializePodAction(r.reader),
-			newScheduleAction(r.reader),
+			newScheduleAction(r.reader, buildMonitor),
 			newMonitorPodAction(r.reader),
 			newErrorRecoveryAction(),
 			newErrorAction(),
@@ -154,7 +158,7 @@ func (r *reconcileBuild) Reconcile(ctx context.Context, request reconcile.Reques
 	case v1.BuildStrategyRoutine:
 		actions = []Action{
 			newInitializeRoutineAction(),
-			newScheduleAction(r.reader),
+			newScheduleAction(r.reader, buildMonitor),
 			newMonitorRoutineAction(),
 			newErrorRecoveryAction(),
 			newErrorAction(),

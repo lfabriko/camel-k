@@ -27,8 +27,9 @@ import (
 
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
-	"github.com/apache/camel-k/pkg/util/indentedwriter"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
+
+	"github.com/apache/camel-k/v2/pkg/util/indentedwriter"
 )
 
 func newDescribeKameletCmd(rootCmdOptions *RootCmdOptions) (*cobra.Command, *describeKameletCommandOptions) {
@@ -74,7 +75,7 @@ func (command *describeKameletCommandOptions) run(cmd *cobra.Command, args []str
 		return err
 	}
 
-	kamelet := v1alpha1.NewKamelet(command.Namespace, args[0])
+	kamelet := v1.NewKamelet(command.Namespace, args[0])
 	kameletKey := k8sclient.ObjectKey{
 		Namespace: command.Namespace,
 		Name:      args[0],
@@ -93,7 +94,7 @@ func (command *describeKameletCommandOptions) run(cmd *cobra.Command, args []str
 	return nil
 }
 
-func (command *describeKameletCommandOptions) describeKamelet(cmd *cobra.Command, kamelet v1alpha1.Kamelet) (string, error) {
+func (command *describeKameletCommandOptions) describeKamelet(cmd *cobra.Command, kamelet v1.Kamelet) (string, error) {
 	return indentedwriter.IndentedString(func(out io.Writer) error {
 		w := indentedwriter.NewWriter(cmd.OutOrStdout())
 
@@ -132,12 +133,17 @@ func (command *describeKameletCommandOptions) describeKamelet(cmd *cobra.Command
 		}
 
 		// Types
-		if len(kamelet.Spec.Types) > 0 {
+		if len(kamelet.Spec.DataTypes) > 0 {
 			w.Writef(0, "Types:\n")
 			for _, k := range kamelet.SortedTypesKeys() {
-				t := kamelet.Spec.Types[k]
+				t := kamelet.Spec.DataTypes[k]
 				w.Writef(1, "%s:\n", k)
-				w.Writef(2, "Media Type: %s\n", t.MediaType)
+				w.Writef(2, "Default:\t%s\n", t.Default)
+				w.Writef(2, "Types:\t\n")
+				w.Writef(3, "Format\tScheme\tMediaType\tDescription\n")
+				for _, dt := range t.Types {
+					w.Writef(3, "%s\t%s\t%s\t%s", dt.Format, dt.Scheme, dt.MediaType, dt.Description)
+				}
 			}
 		}
 

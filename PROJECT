@@ -19,10 +19,13 @@ resources:
   kind: Integration
   version: v1
 - group: camel
-  kind: KameletBinding
-  version: v1alpha1
+  kind: Binding
+  version: v1
 - group: camel
   kind: Kamelet
+  version: v1
+- group: camel
+  kind: KameletBinding
   version: v1alpha1
 version: "3"
 plugins:

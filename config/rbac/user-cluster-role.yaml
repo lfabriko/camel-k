@@ -33,6 +33,8 @@ rules:
   - integrationkits
   - integrationplatforms
   - integrations
+  - pipes
+  # Deprecated: kameletbindings CR
   - kameletbindings
   - kamelets
   verbs:
@@ -53,6 +55,9 @@ rules:
   - integrationplatforms/status
   - integrations/scale
   - integrations/status
+  - pipes/scale
+  - pipes/status
+  # Deprecated: kameletbindings CR
   - kameletbindings/scale
   - kameletbindings/status
   - kamelets/status

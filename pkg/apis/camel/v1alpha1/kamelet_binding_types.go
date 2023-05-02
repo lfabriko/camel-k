@@ -15,16 +15,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package v1alpha1 is deprecated: use the v1 API instead
+// Deprecated
 package v1alpha1
 
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	v1 "github.com/apache/camel-k/pkg/apis/camel/v1"
+	v1 "github.com/apache/camel-k/v2/pkg/apis/camel/v1"
 )
 
 // +genclient
+// +kubebuilder:deprecatedversion:warning="v1apha1.KameletBinding is deprecated, please, use v1.Pipe instead"
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=kameletbindings,scope=Namespaced,shortName=klb,categories=kamel;camel
 // +kubebuilder:subresource:status
@@ -71,8 +74,11 @@ type Endpoint struct {
 	URI *string `json:"uri,omitempty"`
 	// Properties are a key value representation of endpoint properties
 	Properties *EndpointProperties `json:"properties,omitempty"`
-	// Types defines the schema of the data produced/consumed by the endpoint
-	Types map[EventSlot]EventTypeSpec `json:"types,omitempty"`
+	// Types defines the data type of the data produced/consumed by the endpoint and references a given data type specification.
+	// Deprecated: In favor of using DataTypes
+	Types map[TypeSlot]EventTypeSpec `json:"types,omitempty"`
+	// DataTypes defines the data type of the data produced/consumed by the endpoint and references a given data type specification.
+	DataTypes map[TypeSlot]DataTypeReference `json:"dataTypes,omitempty"`
 }
 
 // EndpointType represents the type (ie, source or sink)
