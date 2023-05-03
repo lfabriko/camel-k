@@ -102,7 +102,8 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 		// IntegrationPlatform should match at least on the version prefix
 		// CSV patch version can be increased with the OperatorHub respin of the same Camel K release
 		var prevIPVersionPrefix string
-		var newIPVersionPrefix string
+		//var newIPVersionPrefix string
+		var newIPVersionMajorMinorPatch string
 
 		prevCSVVersion = clusterServiceVersion(noAdditionalConditions, ns)().Spec.Version
 		prevIPVersionPrefix = fmt.Sprintf("%d.%d", prevCSVVersion.Version.Major, prevCSVVersion.Version.Minor)
@@ -112,6 +113,8 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 		Eventually(OperatorPodPhase(ns), TestTimeoutMedium).Should(Equal(corev1.PodRunning))
 
 		// Check the IntegrationPlatform has been reconciled
+		platfVers := PlatformVersion(ns)
+		t.Logf("Platform version: %s", platfVers())
 		//Eventually(PlatformVersion(ns)).Should(ContainSubstring(prevIPVersionPrefix))//platform version is empty
 
 		name := "yaml"
@@ -119,6 +122,8 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 		kbindName := "timer-to-log"
 		Expect(KamelBind(ns, "timer-source?message=Hello", "log-sink", "--name", kbindName).Execute()).To(Succeed())
 		// Check the Integration runs correctly
+		ipodPhase := IntegrationPodPhase(ns, name)
+		t.Logf("IntegrationPodPhase of %s: %s", name, ipodPhase())
 		Eventually(IntegrationPodPhase(ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 		Eventually(IntegrationConditionStatus(ns, name, v1.IntegrationConditionReady), TestTimeoutLong).Should(Equal(corev1.ConditionTrue))
 		Eventually(KameletBindingConditionStatus(ns, kbindName, v1alpha1.KameletBindingConditionReady), TestTimeoutShort).
@@ -158,7 +163,8 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 			}, ns), TestTimeoutMedium).Should(BeNil())
 
 			newCSVVersion = clusterServiceVersion(noAdditionalConditions, ns)().Spec.Version
-			newIPVersionPrefix = fmt.Sprintf("%d.%d", newCSVVersion.Version.Major, newCSVVersion.Version.Minor)
+			//newIPVersionPrefix = fmt.Sprintf("%d.%d", newCSVVersion.Version.Major, newCSVVersion.Version.Minor)
+			newIPVersionMajorMinorPatch = fmt.Sprintf("%d.%d.%d", newCSVVersion.Version.Major, newCSVVersion.Version.Minor, newCSVVersion.Version.Patch)
 
 			Expect(prevCSVVersion.Version.String()).NotTo(Equal(newCSVVersion.Version.String()))
 
@@ -166,7 +172,7 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 			Eventually(OperatorImage(ns), TestTimeoutShort).Should(Equal(defaults.OperatorImage()))
 
 			// Check the IntegrationPlatform has been reconciled
-			Eventually(PlatformVersion(ns)).Should(ContainSubstring(newIPVersionPrefix))
+			Eventually(PlatformVersion(ns)).Should(ContainSubstring(newIPVersionMajorMinorPatch))
 		})
 
 		t.Run("Integration upgrade", func(t *testing.T) {
@@ -186,21 +192,20 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 			Eventually(IntegrationConditionStatus(ns, name, v1.IntegrationConditionReady), TestTimeoutMedium).Should(Equal(corev1.ConditionTrue))
 
 			// Check the Integration version has been upgraded
-			Eventually(IntegrationVersion(ns, name)).Should(ContainSubstring(newIPVersionPrefix))
+			Eventually(IntegrationVersion(ns, name)).Should(ContainSubstring(newIPVersionMajorMinorPatch))
 
 			// Check the previous kit is not garbage collected (skip Build - present in case of respin)
 			prevCSVVersionMajorMinorPatch := fmt.Sprintf("%d.%d.%d",
 				prevCSVVersion.Version.Major, prevCSVVersion.Version.Minor, prevCSVVersion.Version.Patch)
 			Eventually(Kits(ns, KitWithVersion(prevCSVVersionMajorMinorPatch))).Should(HaveLen(2))
 			// Check a new kit is created with the current version
-			Eventually(Kits(ns, KitWithVersion(defaults.Version)),
-				TestTimeoutMedium).Should(HaveLen(2))
+			Eventually(Kits(ns, KitWithVersion(newIPVersionMajorMinorPatch))).Should(HaveLen(2))
 			// Check the new kit is ready
-			Eventually(Kits(ns, KitWithVersion(defaults.Version), KitWithPhase(v1.IntegrationKitPhaseReady)),
+			Eventually(Kits(ns, KitWithVersion(newIPVersionMajorMinorPatch), KitWithPhase(v1.IntegrationKitPhaseReady)),
 				TestTimeoutMedium).Should(HaveLen(2))
 
-			kit := Kits(ns, KitWithVersion(defaults.Version), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": name}))()[0]
-			kitKbind := Kits(ns, KitWithVersion(defaults.Version), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": kbindName}))()[0]
+			kit := Kits(ns, KitWithVersion(newIPVersionMajorMinorPatch), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": name}))()[0]
+			kitKbind := Kits(ns, KitWithVersion(newIPVersionMajorMinorPatch), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": kbindName}))()[0]
 
 			// Check the Integration uses the new kit
 			Eventually(IntegrationKit(ns, name), TestTimeoutMedium).Should(Equal(kit.Name))
