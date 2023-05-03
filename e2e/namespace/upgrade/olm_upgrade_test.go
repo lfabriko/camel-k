@@ -24,6 +24,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/apache/camel-k/pkg/apis/camel/v1alpha1"
 	"os"
 	"testing"
 	"time"
@@ -115,12 +116,19 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 
 		name := "yaml"
 		Expect(Kamel("run", "-n", ns, "files/yaml.yaml").Execute()).To(Succeed())
+		kbindName := "timer-to-log"
+		Expect(KamelBind(ns, "timer-source?message=Hello", "log-sink", "--name", kbindName).Execute()).To(Succeed())
 		// Check the Integration runs correctly
 		Eventually(IntegrationPodPhase(ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 		Eventually(IntegrationConditionStatus(ns, name, v1.IntegrationConditionReady), TestTimeoutLong).Should(Equal(corev1.ConditionTrue))
+		Eventually(KameletBindingConditionStatus(ns, kbindName, v1alpha1.KameletBindingConditionReady), TestTimeoutShort).
+			Should(Equal(corev1.ConditionTrue))
+		Eventually(IntegrationPodPhase(ns, kbindName), TestTimeoutLong).Should(Equal(corev1.PodRunning))
+		Eventually(IntegrationConditionStatus(ns, kbindName, v1.IntegrationConditionReady), TestTimeoutLong).Should(Equal(corev1.ConditionTrue))
 
 		// Check the Integration version matches that of the current operator
 		Expect(IntegrationVersion(ns, name)()).To(ContainSubstring(prevIPVersionPrefix))
+		Expect(IntegrationVersion(ns, kbindName)()).To(ContainSubstring(prevIPVersionPrefix))
 
 		t.Run("OLM upgrade", func(t *testing.T) {
 			// Trigger Camel K operator upgrade by updating the CatalogSource with the new index image
@@ -176,6 +184,8 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 			// Rebuild the Integration
 			Expect(Kamel("rebuild", name, "-n", ns).Execute()).To(Succeed())
 
+			Eventually(KameletBindingConditionStatus(ns, kbindName, v1alpha1.KameletBindingConditionReady), TestTimeoutMedium).Should(Equal(corev1.ConditionTrue))
+
 			// Check the Integration runs correctly
 			Eventually(IntegrationPodPhase(ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 			Eventually(IntegrationConditionStatus(ns, name, v1.IntegrationConditionReady), TestTimeoutMedium).Should(Equal(corev1.ConditionTrue))
@@ -186,7 +196,8 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 			// Check the previous kit is not garbage collected (skip Build - present in case of respin)
 			prevCSVVersionMajorMinorPatch := fmt.Sprintf("%d.%d.%d",
 				prevCSVVersion.Version.Major, prevCSVVersion.Version.Minor, prevCSVVersion.Version.Patch)
-			Eventually(Kits(ns, KitWithVersion(prevCSVVersionMajorMinorPatch))).Should(HaveLen(1))
+			t.Logf("Kits with version %s: %s", prevCSVVersionMajorMinorPatch, KitWithVersion(prevCSVVersionMajorMinorPatch))
+			Eventually(Kits(ns, KitWithVersion(prevCSVVersionMajorMinorPatch))).Should(HaveLen(2))
 			// Check a new kit is created with the current version
 			Eventually(Kits(ns, KitWithVersion(defaults.Version)),
 				TestTimeoutMedium).Should(HaveLen(1))
