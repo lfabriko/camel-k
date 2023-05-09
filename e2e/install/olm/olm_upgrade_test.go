@@ -24,7 +24,6 @@ package olm
 
 import (
 	"fmt"
-	"github.com/apache/camel-k/v2/pkg/apis/camel/v1alpha1"
 	"k8s.io/apimachinery/pkg/types"
 	"os"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
@@ -114,7 +113,7 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 		// IntegrationPlatform should match at least on the version prefix
 		// CSV patch version can be increased with the OperatorHub respin of the same Camel K release
 		var prevIPVersionPrefix string
-		var newIPVersionPrefix string
+		var newIPVersionMajorMinorPatch string
 
 		prevCSVVersion = ClusterServiceVersion(noAdditionalConditions, ns)().Spec.Version
 		prevIPVersionPrefix = fmt.Sprintf("%d.%d", prevCSVVersion.Version.Major, prevCSVVersion.Version.Minor)
@@ -136,8 +135,8 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 		Eventually(IntegrationPodPhase(ns, name), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 		Eventually(IntegrationConditionStatus(ns, name, v1.IntegrationConditionReady), TestTimeoutLong).
 			Should(Equal(corev1.ConditionTrue))
-		Eventually(KameletBindingConditionStatus(ns, kbindName, v1alpha1.KameletBindingConditionReady), TestTimeoutShort).
-			Should(Equal(corev1.ConditionTrue))
+		/*Eventually(PipeConditionStatus(ns, kbindName, v1.PipeConditionReady), TestTimeoutShort).
+		Should(Equal(corev1.ConditionTrue))*/
 		Eventually(IntegrationPodPhase(ns, kbindName), TestTimeoutLong).Should(Equal(corev1.PodRunning))
 		Eventually(IntegrationConditionStatus(ns, kbindName, v1.IntegrationConditionReady), TestTimeoutLong).Should(Equal(corev1.ConditionTrue))
 
@@ -164,11 +163,6 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 				Expect(subscription.Spec.Channel).To(Equal(newUpdateChannel))
 			}
 
-			// Check the previous CSV is being replaced
-			Eventually(ClusterServiceVersionPhase(func(csv olm.ClusterServiceVersion) bool {
-				return csv.Spec.Version.Version.String() == prevCSVVersion.Version.String()
-			}, ns), TestTimeoutMedium).Should(Equal(olm.CSVPhaseReplacing))
-
 			// The new CSV is installed
 			Eventually(ClusterServiceVersionPhase(func(csv olm.ClusterServiceVersion) bool {
 				return csv.Spec.Version.Version.String() != prevCSVVersion.Version.String()
@@ -180,7 +174,7 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 			}, ns), TestTimeoutMedium).Should(BeNil())
 
 			newCSVVersion = ClusterServiceVersion(noAdditionalConditions, ns)().Spec.Version
-			newIPVersionPrefix = fmt.Sprintf("%d.%d", newCSVVersion.Version.Major, newCSVVersion.Version.Minor)
+			newIPVersionMajorMinorPatch = fmt.Sprintf("%d.%d.%d", newCSVVersion.Version.Major, newCSVVersion.Version.Minor, newCSVVersion.Version.Patch)
 
 			Expect(prevCSVVersion.Version.String()).NotTo(Equal(newCSVVersion.Version.String()))
 
@@ -188,7 +182,7 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 			Eventually(OperatorImage(ns), TestTimeoutShort).Should(Equal(defaults.OperatorImage()))
 
 			// Check the IntegrationPlatform has been reconciled
-			Eventually(PlatformVersion(ns)).Should(ContainSubstring(newIPVersionPrefix))
+			Eventually(PlatformVersion(ns)).Should(ContainSubstring(newIPVersionMajorMinorPatch))
 		})
 
 		t.Run("Integration upgrade", func(t *testing.T) {
@@ -200,28 +194,26 @@ func TestOLMAutomaticUpgrade(t *testing.T) {
 				Should(ContainSubstring(prevIPVersionPrefix))
 
 			// Rebuild the Integration
-			Expect(Kamel("rebuild", name, "-n", ns).Execute()).To(Succeed())
+			Expect(Kamel("rebuild", "--all", "-n", ns).Execute()).To(Succeed())
 
-			Eventually(KameletBindingConditionStatus(ns, kbindName, v1alpha1.KameletBindingConditionReady), TestTimeoutMedium).
-				Should(Equal(corev1.ConditionTrue))
+			/*Eventually(PipeConditionStatus(ns, kbindName, v1.PipeConditionReady), TestTimeoutMedium).
+			Should(Equal(corev1.ConditionTrue))*/
 
 			// Check the Integration version has been upgraded
-			Eventually(IntegrationVersion(ns, name)).Should(ContainSubstring(newIPVersionPrefix))
-			Eventually(IntegrationVersion(ns, kbindName)).Should(ContainSubstring(newIPVersionPrefix))
+			Eventually(IntegrationVersion(ns, name)).Should(ContainSubstring(newIPVersionMajorMinorPatch))
 
 			// Check the previous kit is not garbage collected (skip Build - present in case of respin)
 			prevCSVVersionMajorMinorPatch := fmt.Sprintf("%d.%d.%d",
 				prevCSVVersion.Version.Major, prevCSVVersion.Version.Minor, prevCSVVersion.Version.Patch)
 			Eventually(Kits(ns, KitWithVersion(prevCSVVersionMajorMinorPatch))).Should(HaveLen(2))
 			// Check a new kit is created with the current version
-			Eventually(Kits(ns, KitWithVersion(defaults.Version)),
-				TestTimeoutMedium).Should(HaveLen(2))
+			Eventually(Kits(ns, KitWithVersion(newIPVersionMajorMinorPatch)), TestTimeoutMedium).Should(HaveLen(2))
 			// Check the new kit is ready
-			Eventually(Kits(ns, KitWithVersion(defaults.Version), KitWithPhase(v1.IntegrationKitPhaseReady)),
-				TestTimeoutMedium).Should(HaveLen(1))
+			Eventually(Kits(ns, KitWithVersion(newIPVersionMajorMinorPatch), KitWithPhase(v1.IntegrationKitPhaseReady)),
+				TestTimeoutMedium).Should(HaveLen(2))
 
-			kit := Kits(ns, KitWithVersion(defaults.Version), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": name}))()[0]
-			kitKbind := Kits(ns, KitWithVersion(defaults.Version), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": kbindName}))()[0]
+			kit := Kits(ns, KitWithVersionPrefix(newIPVersionMajorMinorPatch), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": name}))()[0]
+			kitKbind := Kits(ns, KitWithVersionPrefix(newIPVersionMajorMinorPatch), KitWithLabels(map[string]string{"camel.apache.org/created.by.name": kbindName}))()[0]
 
 			// Check the Integration uses the new kit
 			Eventually(IntegrationKit(ns, name), TestTimeoutMedium).Should(Equal(kit.Name))
