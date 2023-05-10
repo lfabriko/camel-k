@@ -124,9 +124,10 @@ func Run(healthPort, monitoringPort int32, leaderElection bool, leaderElectionID
 	}))
 
 	klog.SetLogger(log.AsLogger())
-
+	log.Info("---BEFORE MAXPROCS")
 	_, err := maxprocs.Set(maxprocs.Logger(func(f string, a ...interface{}) { log.Info(fmt.Sprintf(f, a)) }))
 	if err != nil {
+		log.Info("---ERR!=nil")
 		log.Error(err, "failed to set GOMAXPROCS from cgroups")
 	}
 
@@ -176,7 +177,7 @@ func Run(healthPort, monitoringPort int32, leaderElection bool, leaderElectionID
 	// Set the operator container image if it runs in-container
 	platform.OperatorImage, err = getOperatorImage(ctx, bootstrapClient)
 	exitOnError(err, "cannot get operator container image")
-
+	log.Info("---PLATFORM opimage: " + platform.OperatorImage)
 	if ok, err := kubernetes.CheckPermission(ctx, bootstrapClient, coordination.GroupName, "leases", operatorNamespace, "", "create"); err != nil || !ok {
 		leaderElection = false
 		exitOnError(err, "cannot check permissions for creating Leases")
@@ -225,14 +226,14 @@ func Run(healthPort, monitoringPort int32, leaderElection bool, leaderElectionID
 	})
 	exitOnError(err, "")
 
-	log.Info("Configuring manager")
+	log.Info("----------Configuring manager")
 	exitOnError(mgr.AddHealthzCheck("health-probe", healthz.Ping), "Unable add liveness check")
 	exitOnError(apis.AddToScheme(mgr.GetScheme()), "")
 	ctrlClient, err := client.FromManager(mgr)
 	exitOnError(err, "")
 	exitOnError(controller.AddToManager(ctx, mgr, ctrlClient), "")
 
-	log.Info("Installing operator resources")
+	log.Info("-----Installing operator resources")
 	installCtx, installCancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer installCancel()
 	install.OperatorStartupOptionalTools(installCtx, bootstrapClient, watchNamespace, operatorNamespace, log)
@@ -244,6 +245,7 @@ func Run(healthPort, monitoringPort int32, leaderElection bool, leaderElectionID
 
 // findOrCreateIntegrationPlatform create default integration platform in operator namespace if not already exists.
 func findOrCreateIntegrationPlatform(ctx context.Context, c client.Client, operatorNamespace string) error {
+	log.Info("---FIND OR CREATE IP")
 	operatorID := defaults.OperatorID()
 	var platformName string
 	if operatorID != "" {
@@ -251,6 +253,8 @@ func findOrCreateIntegrationPlatform(ctx context.Context, c client.Client, opera
 	} else {
 		platformName = platform.DefaultPlatformName
 	}
+	log.Info("----OP ID: " + operatorID)
+	log.Info("----platformname: " + platformName)
 
 	if pl, err := kubernetes.GetIntegrationPlatform(ctx, c, platformName, operatorNamespace); pl == nil || k8serrors.IsNotFound(err) {
 		defaultPlatform := v1.NewIntegrationPlatform(operatorNamespace, platformName)
@@ -271,6 +275,7 @@ func findOrCreateIntegrationPlatform(ctx context.Context, c client.Client, opera
 
 		// Make sure that IntegrationPlatform installed in operator namespace can be seen by others
 		if err := install.IntegrationPlatformViewerRole(ctx, c, operatorNamespace); err != nil && !k8serrors.IsAlreadyExists(err) {
+			log.Info("----ERR IN IP")
 			return errors.Wrap(err, "Error while installing global IntegrationPlatform viewer role")
 		}
 	} else {
