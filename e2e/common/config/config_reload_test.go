@@ -139,7 +139,9 @@ func CheckConfigmapDigest(t *testing.T, hotreload bool) {
 		"mount.hot-reload="+strconv.FormatBool(hotreload),
 	).Execute()).To(Succeed())
 	uid := Integration(ns, name)().UID
-	ikName := Integration(ns, name)().Status.IntegrationKit.Name
+
+	ikName := IntegrationKit(ns, name)()
+	//	ikName := Integration(ns, name)().Status.IntegrationKit.Name
 	Eventually(KitPhase(ns, ikName), TestTimeoutLong).Should(Equal(v1.IntegrationKitPhaseReady))
 
 	digest := Integration(ns, name)().Status.Digest
