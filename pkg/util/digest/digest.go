@@ -141,7 +141,7 @@ func ComputeForIntegration(integration *v1.Integration, configmaps []*corev1.Con
 	for _, cm := range configmaps {
 		if cm != nil {
 			// name, ns
-			if _, err := hash.Write([]byte("#{cm.Name}/#{cm.Namespace}")); err != nil {
+			if _, err := hash.Write([]byte(fmt.Sprintf("%s/%s", cm.Name, cm.Namespace))); err != nil {
 				return "", err
 			}
 			// Data with sorted keys
@@ -178,7 +178,7 @@ func ComputeForIntegration(integration *v1.Integration, configmaps []*corev1.Con
 	for _, s := range secrets {
 		if s != nil {
 			// name, ns
-			if _, err := hash.Write([]byte("#{s.Name}/#{s.Namespace}")); err != nil {
+			if _, err := hash.Write([]byte(fmt.Sprintf("%s/%s", s.Name, s.Namespace))); err != nil {
 				return "", err
 			}
 			// Data with sorted keys
